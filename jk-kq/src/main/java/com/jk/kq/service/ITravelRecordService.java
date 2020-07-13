@@ -1,0 +1,46 @@
+package com.jk.kq.service;
+
+import com.jk.kq.entity.OpenUser;
+import com.jk.kq.entity.TravelRecord;
+import com.jk.common.base.IBaseService;
+
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+
+
+/**
+ * 出差申请服务接口层
+ *
+ * @author 何任鹏
+ * @version 1.0
+ * @date 2020年06月01日
+ */
+public interface ITravelRecordService extends IBaseService<TravelRecord> {
+
+    /**
+     * 通过openUserId查找当月的出差记录
+     *
+     * @param openUserId
+     * @param date
+     * @return
+     */
+    List<TravelRecord> selectByOpenUserIdAndDate(Long openUserId, Date date);
+
+    /**
+     * 新增用户出差申请
+     *
+     * @param openUser
+     * @param travelRecord
+     * @return 返回该申请需要推送的用户的集合
+     */
+    List<OpenUser> insert(OpenUser openUser, TravelRecord travelRecord);
+
+    /**
+     * 找该用户等级可以审核的出差申请
+     *
+     * @param queryMap
+     * @return
+     */
+    List selectToCheck(Map queryMap);
+}

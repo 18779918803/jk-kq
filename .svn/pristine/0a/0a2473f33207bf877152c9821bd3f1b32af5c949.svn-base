@@ -1,0 +1,107 @@
+package com.jk.sw.entity;
+
+import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.jk.common.base.BaseEntity;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+    import java.util.Date;
+    import org.springframework.format.annotation.DateTimeFormat;
+import cn.afterturn.easypoi.excel.annotation.Excel;
+import cn.afterturn.easypoi.excel.annotation.ExcelTarget;
+import cn.afterturn.easypoi.excel.annotation.ExcelIgnore;
+
+/**
+ * 收文记录实体类
+ *
+ * @author 温龙飞
+ * @version 1.0
+ * @date 2020年06月07日
+ */
+@Data
+@NoArgsConstructor
+@EqualsAndHashCode(callSuper = false)
+@TableName("sw_receiving_records")
+@ExcelTarget("ReceivingRecords")
+public class ReceivingRecords extends BaseEntity {
+
+    /**
+     * 来文字号
+     */
+    @Excel(name="来文字号")
+    private String receivedSn;
+
+    /**
+     * 收文日期
+     */
+    @Excel(name="收文日期",format = "yyyy-MM-dd HH:mm:ss")
+    @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private Date receivedDate;
+
+    /**
+     * 来文单位
+     */
+    @Excel(name="来文单位")
+    private String receivedOrg;
+
+    /**
+     * 标题
+     */
+    @Excel(name="标题")
+    private String title;
+
+    /**
+     * 密级
+     */
+    @Excel(name="密级")
+    private Integer securityClassification;
+
+    /**
+     * 重要程度
+     */
+    @Excel(name="重要程度")
+    private Integer importance;
+
+    /**
+     * 拟办意见
+     */
+    @Excel(name="拟办意见")
+    private String propose;
+
+    /**
+     * 备注
+     */
+    @Excel(name="备注")
+    private String remark;
+
+    /**
+     * 类别
+     */
+    @Excel(name="类别")
+    private Integer category;
+
+    /**
+     * 归档
+     */
+    @Excel(name="归档")
+    private Integer complete;
+
+    /**
+     * 附件
+     */
+    @ExcelIgnore
+    private String attachment;
+
+    /**
+     * 可编辑
+     */
+    @ExcelIgnore
+    private Integer editable;
+
+    /**
+     * 文件文本
+     */
+    @ExcelIgnore
+    private String text;
+}

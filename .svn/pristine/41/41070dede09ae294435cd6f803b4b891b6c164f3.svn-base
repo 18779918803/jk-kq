@@ -1,0 +1,124 @@
+package com.jk.api.controller;
+
+import com.jk.api.dto.WriteoffRecordDTO;
+import com.jk.api.service.ApiService;
+import com.jk.api.service.impl.WriteOffApiService;
+import com.jk.api.util.SendWeChatUtil;
+import com.jk.common.annotation.KrtIgnoreAuth;
+import com.jk.common.bean.ReturnBean;
+import com.jk.common.bean.ReturnCode;
+import com.jk.common.exception.KqException;
+import com.jk.kq.config.WorkTypeConfig;
+import com.jk.kq.entity.*;
+import com.jk.kq.entity.vo.WriteoffRecordVo;
+import com.jk.kq.service.IOpenUserService;
+import com.jk.kq.service.IWorkTypeService;
+import com.jk.kq.service.IWriteoffRecordService;
+import com.jk.sys.entity.User;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.util.ObjectUtils;
+import org.springframework.web.bind.annotation.*;
+
+import javax.servlet.http.HttpServletRequest;
+import java.util.Date;
+import java.util.List;
+
+/**
+ * 核销记录的微信小程序API接口
+ *
+ * @author 何任鹏
+ * @version 1.0
+ * @date 2020年06月01日
+ */
+@RestController
+@RequestMapping("api/wechat/kq")
+public class WriteoffRecordApi {
+
+
+    @Autowired
+    private IWriteoffRecordService writeoffRecordService;
+
+    @Autowired
+    private ApiService apiService;
+
+    @Autowired
+    private IWorkTypeService workTypeService;
+
+    @Autowired
+    private WriteOffApiService writeOffApiService;
+
+
+    @Autowired
+    private SendWeChatUtil sendWeChatUtil;
+
+    /**
+     * 查找所有的核销记录，可以按照月份查找
+     *
+     * @param request
+     * @param date
+     * @return
+     */
+    @KrtIgnoreAuth
+    @GetMapping("writeoff/list")
+    public ReturnBean list(HttpServletRequest request, @DateTimeFormat(pattern = "yyyy-MM-dd") Date date) throws KqException {
+        User openUser = apiService.getOpenUser(request);
+        List<WriteoffRecordVo> writeoffRecords = writeoffRecordService.selectByUserIdAndDate(openUser.getId(), date);
+        return ReturnBean.ok(writeoffRecords);
+    }
+
+    /**
+     * 查找所有的核销记录类型
+     *
+     * @return
+     */
+    @KrtIgnoreAuth
+    @GetMapping("writeoff/type")
+    public ReturnBean types() {
+        List<WorkType> writeoffTypes = workTypeService.selectByPid(WorkTypeConfig.WRITEOFF);
+        return ReturnBean.ok(writeoffTypes);
+    }
+
+
+    /**
+     * 新增用户核销申请
+     *
+     * @return
+     */
+    @KrtIgnoreAuth
+    @PostMapping("writeoff/insert")
+    public ReturnBean insert(HttpServletRequest request, @RequestBody WriteoffRecordDTO dto) throws KqException {
+        User openUser = apiService.getOpenUser(request);
+
+        if (ObjectUtils.isEmpty(dto.getDate())) {
+            return ReturnBean.error(
+                    ReturnCode.INVALID_REQUEST.getCode(), "核销日期不能为空"
+            );
+        }
+
+        if (ObjectUtils.isEmpty(dto.getTypeId())) {
+            return ReturnBean.error(
+                    ReturnCode.INVALID_REQUEST.getCode(), "核销类型不能为空"
+            );
+        }
+        Integer id = writeOffApiService.addWriteOff(openUser, dto);
+        WriteoffRecord  writeoffRecord=writeoffRecordService.selectById(id);
+        List<User> ids = apiService.nextHandel(writeoffRecord.getInstanceId());
+
+
+
+
+//        List<OpenUser> checkList = writeoffRecordService.insert(openUser, writeoffRecord);
+        //只有推送用户不为空的时候，才会进行推送，其他情况默认不推送
+//        if(checkList != null){
+//            List<String> gzhOpenIds = openUserService.getGzhOpenIds(checkList);
+//            for (String gzhOpenId : gzhOpenIds) {
+//                sendWeChatUtil.sendMessage(gzhOpenId,"您好，您有一个员工申请待审批!",
+//                        "核销申请", "待审批", writeoffRecord.getReason(),
+//                        "点击查看详情", "页面跳转路径（项目上线后填入路径）");
+//            }
+//        }
+        return ReturnBean.ok();
+    }
+
+}

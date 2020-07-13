@@ -1,0 +1,20 @@
+package com.jk.sw.service.impl;
+
+import com.jk.common.base.BaseServiceImpl;
+import org.springframework.stereotype.Service;
+import com.jk.sw.entity.SwUsable;
+import com.jk.sw.mapper.SwUsableMapper;
+import com.jk.sw.service.ISwUsableService;
+
+
+/**
+ * 文件可用范围服务接口实现层
+ *
+ * @author 温龙飞
+ * @version 1.0
+ * @date 2020年06月16日
+ */
+@Service
+public class SwUsableServiceImpl extends BaseServiceImpl<SwUsableMapper, SwUsable> implements ISwUsableService {
+
+}

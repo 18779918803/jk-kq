@@ -1,0 +1,377 @@
+package com.jk.activiti.controller;
+
+import cn.afterturn.easypoi.entity.vo.MapExcelConstants;
+import cn.afterturn.easypoi.entity.vo.NormalExcelConstants;
+import cn.afterturn.easypoi.excel.entity.ExportParams;
+import cn.afterturn.easypoi.excel.entity.params.ExcelExportEntity;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.jk.activiti.domain.Leave;
+import com.jk.activiti.service.ILeaveService;
+import com.jk.activiti.service.IProcessService;
+import com.jk.activiti.utils.StringUtils;
+import com.jk.common.annotation.KrtLog;
+import com.jk.common.base.BaseController;
+import com.jk.common.bean.DataTable;
+import com.jk.common.bean.ReturnBean;
+import com.jk.common.exception.KqException;
+import com.jk.common.util.ShiroUtils;
+import com.jk.sys.entity.User;
+import com.jk.sys.service.IUserService;
+import org.activiti.engine.RuntimeService;
+import org.activiti.engine.TaskService;
+import org.activiti.engine.impl.persistence.entity.TaskEntityImpl;
+import org.activiti.engine.runtime.ProcessInstance;
+import org.activiti.engine.task.Task;
+import org.apache.commons.lang3.BooleanUtils;
+import org.apache.shiro.authz.annotation.RequiresPermissions;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.ModelMap;
+import org.springframework.util.CollectionUtils;
+import org.springframework.web.bind.annotation.*;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpSession;
+import java.util.*;
+
+/**
+ * 请假控制层
+ *
+ * @author 晏攀林
+ * @version 1.0
+ * @date 2020年06月03日
+ */
+@Controller
+public class LeaveController extends BaseController {
+
+    @Autowired
+    private ILeaveService leaveService;
+
+
+    @Autowired
+    private TaskService taskService;
+    @Autowired
+    private RuntimeService runtimeService;
+
+    @Autowired
+    private IProcessService processService;
+
+    @Autowired
+    private IUserService userService;
+
+    /**
+     * 请假管理页
+     *
+     * @return {@link String}
+     */
+    @RequiresPermissions("Leave:leave:list")
+    @GetMapping("activiti/leave/list")
+    public String list() {
+        request.setAttribute("currentUser", ShiroUtils.getSessionUser());
+        return "leave/list";
+    }
+
+    /**
+     * 请假管理
+     *
+     * @param para 搜索参数
+     * @return {@link DataTable}
+     */
+    @RequiresPermissions("Leave:leave:list")
+    @PostMapping("activiti/leave/list")
+    @ResponseBody
+    public DataTable list(@RequestParam Map para) {
+        if (!ShiroUtils.getSessionUser().isAdmin()) {
+            para.put("createBy", ShiroUtils.getSessionUser().getUsername());
+
+        }
+        para.put("type", "leave");
+        IPage page = leaveService.selectPageList(para);
+        List<Leave> leaves = page.getRecords();
+        for (Leave leave : leaves) {
+
+            Integer userId = userService.getUserId(leave.getCreateBy());
+            User sysUser = userService.selectById(userId);
+            if (sysUser != null) {
+                leave.setCreateUserName(sysUser.getName());
+            }
+            Integer userId2 = userService.getUserId(leave.getApplyUser());
+            User sysUser2 = userService.selectById(userId2);
+//            SysUser sysUser2 = userMapper.selectUserByLoginName(leave.getApplyUser());
+            if (sysUser2 != null) {
+                leave.setApplyUserName(sysUser2.getName());
+            }
+            // 当前环节
+            if (StringUtils.isNotBlank(leave.getInstanceId())) {
+                List<Task> taskList = taskService.createTaskQuery()
+                        .processInstanceId(leave.getInstanceId())
+//                        .singleResult();
+                        .list();    // 例如请假会签，会同时拥有多个任务
+                if (!CollectionUtils.isEmpty(taskList)) {
+                    TaskEntityImpl task = (TaskEntityImpl) taskList.get(0);
+                    leave.setTaskId(task.getId());
+                    if (task.getSuspensionState() == 2) {
+                        leave.setTaskName("已挂起");
+                        leave.setSuspendState("2");
+                    } else {
+                        leave.setTaskName(task.getName());
+                        leave.setSuspendState("1");
+                    }
+                } else {
+                    // 已办结或者已撤销
+                    leave.setTaskName("已结束");
+                }
+            } else {
+                leave.setTaskName("未启动");
+            }
+        }
+        page.setRecords(leaves);
+        return DataTable.ok(page);
+    }
+
+    /**
+     * 新增请假页
+     *
+     * @return {@link String}
+     */
+    @RequiresPermissions("Leave:leave:insert")
+    @GetMapping("activiti/leave/insert")
+    public String insert() {
+        return "leave/insert";
+    }
+
+    /**
+     * 添加请假
+     *
+     * @param leave 请假
+     * @return {@link ReturnBean}
+     */
+    @KrtLog("添加请假")
+    @RequiresPermissions("Leave:leave:insert")
+    @PostMapping("activiti/leave/insert")
+    @ResponseBody
+    public ReturnBean insert(Leave leave) {
+        if (ShiroUtils.getSessionUser().isAdmin()) {
+            return ReturnBean.error("提交申请失败：不允许管理员提交申请！");
+        }
+        leave.setCreateBy(ShiroUtils.getSessionUser().getUsername());
+        leave.setCreateTime(new Date());
+        leave.setType("leave");
+        leaveService.insert(leave);
+        return ReturnBean.ok();
+    }
+
+    /**
+     * 修改请假页
+     *
+     * @param id 请假id
+     * @return {@link String}
+     */
+    @RequiresPermissions("Leave:leave:update")
+    @GetMapping("activiti/leave/update")
+    public String update(Integer id) {
+        Leave leave = leaveService.selectById(id);
+        request.setAttribute("leave", leave);
+        return "leave/update";
+    }
+
+    /**
+     * 修改请假
+     *
+     * @param leave 请假
+     * @return {@link ReturnBean}
+     */
+    @KrtLog("修改请假")
+    @RequiresPermissions("Leave:leave:update")
+    @PostMapping("activiti/leave/update")
+    @ResponseBody
+    public ReturnBean update(Leave leave) {
+        leave.setUpdateTime(new Date());
+        leaveService.updateById(leave);
+        return ReturnBean.ok();
+    }
+
+    /**
+     * 删除请假
+     *
+     * @param id 请假id
+     * @return {@link ReturnBean}
+     */
+    @KrtLog("删除请假")
+    @RequiresPermissions("Leave:leave:delete")
+    @PostMapping("activiti/leave/delete")
+    @ResponseBody
+    public ReturnBean delete(Integer id) throws KqException {
+        leaveService.deleteById(id);
+        return ReturnBean.ok();
+    }
+
+    /**
+     * 批量删除请假
+     *
+     * @param ids 请假ids
+     * @return {@link ReturnBean}
+     */
+    @KrtLog("批量删除请假")
+    @RequiresPermissions("Leave:leave:delete")
+    @PostMapping("activiti/leave/deleteByIds")
+    @ResponseBody
+    public ReturnBean deleteByIds(Integer[] ids) throws KqException {
+        leaveService.deleteByIds(Arrays.asList(ids));
+        return ReturnBean.ok();
+    }
+
+
+    /**
+     * 提交申请
+     */
+    @KrtLog("提交申请")
+    @PostMapping("activiti/leave/submitApply")
+    @ResponseBody
+    public ReturnBean submitApply(Long id) throws KqException {
+        Leave leave = leaveService.selectById(id);
+//        BizLeaveVo leave = bizLeaveService.selectBizLeaveById(id);
+        String applyUserId = ShiroUtils.getSessionUser().getName();
+        leaveService.submitApply(leave, applyUserId, "leave", new HashMap<>());
+        return ReturnBean.ok();
+    }
+
+
+    /**
+     * 导出请假
+     *
+     * @param modelMap 返回模型
+     * @param para     参数
+     */
+    @KrtLog("导出请假")
+    @RequiresPermissions("Leave:leave:excelOut")
+    @GetMapping("activiti/leave/excelOut")
+    public String excelOut(ModelMap modelMap, Map para) {
+        List<ExcelExportEntity> entityList = new ArrayList<>();
+        entityList.add(new ExcelExportEntity("请假类型", "type", 15));
+        entityList.add(new ExcelExportEntity("标题", "title", 15));
+        entityList.add(new ExcelExportEntity("原因", "reason", 15));
+        entityList.add(new ExcelExportEntity("开始时间", "startTime", 15));
+        entityList.add(new ExcelExportEntity("结束时间", "endTime", 15));
+        entityList.add(new ExcelExportEntity("请假时长，单位秒", "totalTime", 15));
+        entityList.add(new ExcelExportEntity("流程实例ID", "instanceId", 15));
+        entityList.add(new ExcelExportEntity("申请人", "applyUser", 15));
+        entityList.add(new ExcelExportEntity("申请时间", "applyTime", 15));
+        entityList.add(new ExcelExportEntity("实际开始时间", "realityStartTime", 15));
+        entityList.add(new ExcelExportEntity("实际结束时间", "realityEndTime", 15));
+        para.put("type", "leave");
+        List dataResult = leaveService.selectExcelList(para);
+        modelMap.put(MapExcelConstants.ENTITY_LIST, entityList);
+        modelMap.put(MapExcelConstants.MAP_LIST, dataResult);
+        modelMap.put(MapExcelConstants.FILE_NAME, "请假");
+        modelMap.put(NormalExcelConstants.PARAMS, new ExportParams("请假", "请假"));
+        return MapExcelConstants.EASYPOI_MAP_EXCEL_VIEW;
+    }
+
+
+    @GetMapping("/leaveTodo")
+    public String todoView() {
+        return "leave/leaveTodo";
+    }
+
+    /**
+     * 我的待办列表
+     *
+     * @return
+     */
+    @PostMapping("/taskList")
+    @ResponseBody
+    public DataTable taskList(@RequestParam Map para) {
+        para.put("type", "leave");
+        IPage<Leave> page = leaveService.findTodoTasks(ShiroUtils.getSessionUser().getUsername(), para);
+        return DataTable.ok(page);
+    }
+
+    /**
+     * 加载审批弹窗
+     *
+     * @param taskId
+     * @param mmap
+     * @return
+     */
+    @GetMapping("leave/showVerifyDialog/{taskId}")
+    public String showVerifyDialog(@PathVariable("taskId") String taskId, ModelMap mmap) {
+        Task task = taskService.createTaskQuery().taskId(taskId).singleResult();
+        String processInstanceId = task.getProcessInstanceId();
+        ProcessInstance processInstance = runtimeService.createProcessInstanceQuery().processInstanceId(processInstanceId).singleResult();
+        Leave bizLeave = leaveService.selectById(new Integer(processInstance.getBusinessKey()));
+        request.setAttribute("leave", bizLeave);
+        request.setAttribute("taskId", taskId);
+        String verifyName = task.getTaskDefinitionKey().substring(0, 1).toUpperCase() + task.getTaskDefinitionKey().substring(1);
+        return "leave/task" + verifyName;
+    }
+
+    @GetMapping("leave/showFormDialog/{instanceId}")
+    public String showFormDialog(@PathVariable("instanceId") String instanceId) {
+        String businessKey = processService.findBusinessKeyByInstanceId(instanceId);
+        Leave leave = leaveService.selectById(new Integer(businessKey));
+        request.setAttribute("leave", leave);
+        return "leave/view";
+    }
+
+    /**
+     * 完成任务
+     *
+     * @return
+     */
+    @RequestMapping(value = "leave/complete/{taskId}", method = {RequestMethod.POST, RequestMethod.GET})
+    @ResponseBody
+    public ReturnBean complete(@PathVariable("taskId") String taskId, @RequestParam(value = "saveEntity", required = false) String saveEntity,
+                               @ModelAttribute("preloadLeave") Leave leave, HttpServletRequest request) {
+        boolean saveEntityBoolean = BooleanUtils.toBoolean(saveEntity);
+        processService.complete(taskId, leave.getInstanceId(), leave.getTitle(), leave.getReason(), "leave", new HashMap<String, Object>(), request);
+        if (saveEntityBoolean) {
+            leaveService.updateById(leave);
+        }
+        return ReturnBean.ok("任务已完成");
+    }
+
+    /**
+     * 自动绑定页面字段
+     */
+    @ModelAttribute("leave/preloadLeave")
+    public Leave getLeave(@RequestParam(value = "id", required = false) Long id, HttpSession session) {
+        if (id != null) {
+            return leaveService.selectById(id);
+        }
+        return new Leave();
+    }
+
+    @GetMapping("leave/leaveDone")
+    public String doneView() {
+        return "leave/leaveDone";
+    }
+
+
+
+
+    /**
+     * 自动绑定页面字段
+     */
+    @RequestMapping("leave/view/{id}")
+    public String view(@PathVariable(value = "id") Integer id) {
+        request.setAttribute("leave",leaveService.selectById(id));
+        return "leave/view";
+    }
+
+    /**
+     * 我的已办列表
+     *
+     * @param bizLeave
+     * @return
+     */
+    @PostMapping("leave/taskDoneList")
+    @ResponseBody
+    public DataTable taskDoneList(@RequestParam Map para) {
+        para.put("type", "leave");
+
+        IPage page = leaveService.findDoneTasks(para, ShiroUtils.getSessionUser().getUsername());
+        return DataTable.ok(page);
+    }
+
+}

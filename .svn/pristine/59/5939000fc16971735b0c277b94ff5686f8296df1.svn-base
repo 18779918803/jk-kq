@@ -1,0 +1,177 @@
+package com.jk.api.controller;
+
+import com.jk.api.service.ApiService;
+import com.jk.api.service.impl.OvertimeRecordApiServiceImpl;
+import com.jk.api.util.SendWeChatUtil;
+import com.jk.common.annotation.KrtIgnoreAuth;
+import com.jk.common.bean.ReturnBean;
+import com.jk.common.bean.ReturnCode;
+import com.jk.common.exception.KqException;
+import com.jk.kq.common.GeneralConvertor;
+import com.jk.kq.config.WorkTypeConfig;
+import com.jk.kq.entity.LeaveRecord;
+import com.jk.kq.entity.OvertimeRecord;
+import com.jk.kq.entity.WorkType;
+import com.jk.kq.entity.dto.OverTimeRecordDTO;
+import com.jk.kq.entity.vo.OvertimeRecordListVO;
+import com.jk.kq.entity.vo.OvertimeRecordVo;
+import com.jk.kq.entity.vo.SumVo;
+import com.jk.kq.service.IOpenUserService;
+import com.jk.kq.service.IOvertimeRecordService;
+import com.jk.kq.service.IWorkTypeService;
+import com.jk.kq.utils.DateUtils;
+import com.jk.sys.entity.User;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.ObjectUtils;
+import org.springframework.web.bind.annotation.*;
+
+import javax.servlet.http.HttpServletRequest;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * 加班记录微信小程序API接口
+ *
+ * @author 何任鹏
+ * @version 1.0
+ * @date 2020年06月01日
+ */
+@RestController
+@RequestMapping("api/wechat/kq")
+@Slf4j
+public class OvertimeRecordApi {
+
+    @Autowired
+    private IOvertimeRecordService overtimeRecordService;
+
+    @Autowired
+    private ApiService apiService;
+
+    @Autowired
+    private IWorkTypeService workTypeService;
+
+    @Autowired
+    private IOpenUserService openUserService;
+
+    @Autowired
+    private SendWeChatUtil sendWeChatUtil;
+
+    @Autowired
+    private OvertimeRecordApiServiceImpl overtimeRecordApiService;
+
+
+
+    /**
+     * 查找所有的加班记录，可以通过月份查找
+     * @param request
+     * @param dto dto
+     * @return
+     */
+    @KrtIgnoreAuth
+    @GetMapping("overtime/list")
+    public ReturnBean list(HttpServletRequest request, OverTimeRecordDTO dto) throws KqException {
+        User user = apiService.getOpenUser(request);
+
+//        if (ObjectUtils.isEmpty(dto.getStartDate()) || ObjectUtils.isEmpty(dto.getEndDate())){
+//            log.error("日期范围不合理");
+//            return ReturnBean.error(ReturnCode.INVALID_REQUEST);
+//        }
+
+        if (ObjectUtils.isEmpty(dto.getDate())){
+             log.error("日期为空");
+            return ReturnBean.error(ReturnCode.INVALID_REQUEST);
+        }
+        LocalDateTime firstday = DateUtils.firstday(dto.getDate());
+        LocalDate lastDay = DateUtils.lastDay(dto.getDate());
+        Map<String,Object> para = new HashMap<String,Object>();
+        para.put("startDate",firstday);
+        para.put("endDate",lastDay);
+        para.put("userId",user.getId());
+
+        List<OvertimeRecord> overtimeRecords = overtimeRecordService.selectByUserIdAndDate(user.getId(),
+                dto.getStartDate(),dto.getEndDate());
+
+        Map<Integer,List<OvertimeRecord>> todayMap = new HashMap<>();
+
+
+        for (OvertimeRecord record : overtimeRecords) {
+            if (!todayMap.containsKey(record.getTypeId())){
+                todayMap.put(record.getTypeId(),null);
+            }
+        }
+
+        OvertimeRecordListVO compute = overtimeRecordApiService.compute(todayMap, overtimeRecords);
+
+        return ReturnBean.ok(compute);
+    }
+
+    /**
+     * 查找所有的加班记录类型
+     *
+     * @return
+     */
+    @KrtIgnoreAuth
+    @GetMapping("overtime/type")
+    public ReturnBean types() {
+        List<WorkType> overtimeTypes = workTypeService.selectByPid(WorkTypeConfig.OVERTIME);
+        return ReturnBean.ok(overtimeTypes);
+    }
+
+    /**
+     * 新增用户加班申请
+     * 当用户新增加班申请的时候，应该推送模板消息给领导
+     *
+     * @return
+     */
+    @KrtIgnoreAuth
+    @PostMapping("overtime/insert")
+    public ReturnBean insert(HttpServletRequest request,@RequestBody OverTimeRecordDTO dto) throws KqException {
+        User openUser = apiService.getOpenUser(request);
+        if (ObjectUtils.isEmpty(dto.getDay())){
+            log.error("加班天数为空");
+            return ReturnBean.error(ReturnCode.INVALID_REQUEST);
+        }
+        boolean checkDay = checkDay(dto.getDay());
+        if (!checkDay){
+            log.error("加班天数不合法");
+            return ReturnBean.error(ReturnCode.INVALID_REQUEST);
+        }
+
+        Integer  id=  overtimeRecordApiService.addOvertime(openUser,dto);
+        OvertimeRecord overtimeRecord = overtimeRecordService.selectById(id);
+        List<User> ids = apiService.nextHandel(overtimeRecord.getInstanceId());
+
+        //不让用户选择是晚上加班，系统自动计算
+//        List<OpenUser> checkList = overtimeRecordService.insert(openUser, dto);
+//        //只有推送用户不为空的时候，才会进行推送，其他情况默认不推送
+//        if(checkList != null){
+//            List<String> gzhOpenIds = openUserService.getGzhOpenIds(checkList);
+//            if(!ObjectUtils.isEmpty(gzhOpenIds)) {
+//                for (String gzhOpenId : gzhOpenIds) {
+//                    //多重保险，不为空的时候才进行推送
+//                    if(gzhOpenId != null && !"".equals(gzhOpenId)) {
+//                    sendWeChatUtil.sendMessage(gzhOpenId,"您好，您有一个员工申请待审批!",
+//                            "加班申请", "待审批", dto.getReason(),
+//                            "点击查看详情", "页面跳转路径（项目上线后填入路径）");
+//
+//                    }
+//                }
+//            }
+//        }
+
+        return ReturnBean.ok();
+    }
+
+    private boolean checkDay(BigDecimal input){
+        if (input.compareTo(BigDecimal.ONE) == 0) return true;
+        if (input.compareTo(BigDecimal.valueOf(1.5)) == 0) return true;
+        return input.compareTo(BigDecimal.valueOf(0.5)) == 0;
+    }
+
+}

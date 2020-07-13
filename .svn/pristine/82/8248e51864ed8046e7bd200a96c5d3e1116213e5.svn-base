@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jk.kq.mapper.OpenUserMapper">
+
+    <sql id="Base_Column_List">
+        id,nick_name,avatar_url,role,gender,country,province,city,language,organ_id,organ,name,state,user_id,open_id,union_id,session_key,third_session,state,fingerprint1,fingerprint2,inserter,insert_time,updater,update_time
+    </sql>
+
+    <!-- 带参数查询用户列表 -->
+    <select id="selectPageList" resultType="com.jk.kq.entity.OpenUser">
+        select
+        <include refid="Base_Column_List"/>
+        from jk_open_user where 1=1
+        <if test="gender !=null and gender!=''">
+            and gender = #{gender}
+        </if>
+        <if test="organId !=null and organId!=''">
+            and organ_id = #{organId}
+        </if>
+        <if test="name !=null and name!=''">
+            and name like concat('%',#{name},'%')
+        </if>
+        <if test="state !=null and state!=''">
+            and state = #{state}
+        </if>
+    </select>
+
+    <!-- 导出数据 -->
+    <select id="selectExcelList" resultType="java.util.Map">
+        select
+        id,nick_name,gender,country,province,city,language,organ,name,state,insert_time,update_time,'1'
+        from jk_open_user
+    </select>
+
+    <!--通过第三方Session查找OpenUser用户信息-->
+    <select id="selectByThirdSession" resultType="com.jk.kq.entity.OpenUser">
+        select * from jk_open_user where third_session = #{thirdSession}
+    </select>
+
+    <!--通过OpenId获取OpenUser的信息-->
+    <select id="selectByOpenid" resultType="com.jk.kq.entity.OpenUser">
+        select * from jk_open_user where open_id = #{openid}
+    </select>
+
+
+
+    <!--插入分管领导分管的公司或部门-->
+    <insert id="insertOrgan">
+        insert into jk_user_organ values(null,#{openUserId},#{organId});
+    </insert>
+
+    <!--通过openUserId查找该分管领导下分管的公司/部门-->
+    <select id="getOrganByOpenUserId" resultType="java.util.Map">
+        select o.id,o.name,uo.id user_organ_id
+        from sys_organ o
+        left join jk_user_organ uo on o.id = uo.organ_id
+        left join jk_open_user u on u.id = uo.open_user_id
+        where u.id = #{openUserId}
+    </select>
+
+    <!--删除分管领导子节点的公司/部门信息-->
+    <delete id="deleteOrgan">
+        delete from jk_user_organ where id = #{userOrganId}
+    </delete>
+
+    <!--通过用户部门和职位等级查找用户（给领导推送消息）-->
+    <select id="selectOpenUser" resultType="com.jk.kq.entity.OpenUser">
+        select * from jk_open_user u
+        left join jk_position p on u.position_id = p.id
+        where 1=1
+        <if test="organId != null">
+            and u.organ_id = #{organId}
+        </if>
+        <if test="grade != null">
+            and p.grade = #{grade}
+        </if>
+    </select>
+
+    <!--通过用户部门名称和职位等级查找用户（给领导推送消息）-->
+    <select id="selectOpenUsers" resultType="com.jk.kq.entity.OpenUser">
+        select * from jk_open_user u
+        left join jk_position p on u.position_id = p.id
+        left join dbApply db on u.organ = db.lead_darpartment
+        left join dbDelay de on u.organ = de.lead_darpartment
+        left join dbFeedback fe on u.organ = fe.lead_darpartment
+        where 1=1
+        <if test="leadDepartment != null">
+            and u.organ = #{leadDepartment}
+        </if>
+        <if test="grade != null">
+            and p.grade = #{grade}
+        </if>
+    </select>
+
+    <!--查找该部门负责人的分管领导-->
+    <select id="selectLeaders" resultType="com.jk.kq.entity.OpenUser">
+        select * from jk_open_user u left join jk_position p
+        on u.position_id = p.id
+        where u.id in (select open_user_id from jk_user_organ where organ_id = #{organId})
+        and p.grade = #{grade}
+    </select>
+
+    <!--使用微信小程序的用户获取公众号的用户openid（批量获取）-->
+    <select id="getGzhOpenIds" resultType="java.lang.String">
+        select g.open_id from jk_gzh_open_user g
+        left join jk_open_user u on g.union_id = u.unionid
+        where u.id in
+        <foreach item="item" index="index" collection="checkList" open="(" separator="," close=")">
+            #{item.id}
+        </foreach>
+    </select>
+
+    <!--使用微信小程序的用户获取公众号的用户openid（单个获取）-->
+    <select id="getGzhOpenId" resultType="java.lang.String">
+        select g.openid from jk_gzh_open_user g
+        left join jk_open_user u on g.union_id = u.unionid
+        where u.id = #{openUserId}
+    </select>
+
+    <select id="selectByOrganId" resultType="com.jk.kq.entity.OpenUser">
+        select
+        <include refid="Base_Column_List"/>
+        from jk_open_user where organ_id = #{organId}
+    </select>
+
+
+</mapper>
+

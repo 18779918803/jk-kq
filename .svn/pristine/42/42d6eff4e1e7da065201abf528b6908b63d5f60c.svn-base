@@ -1,0 +1,45 @@
+package com.jk.kq.service.impl;
+
+import com.jk.kq.entity.DeviceCmd;
+import com.jk.kq.mapper.DeviceCmdMapper;
+import com.jk.kq.service.DeviceCmdService;
+import com.jk.kq.service.DeviceService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+/**
+ * {{文件描述}}
+ *
+ * @author 缪隽峰
+ * @version 1.0
+ * @date 2020年05月20日
+ */
+@Service
+public class DeviceCmdServiceImpl implements DeviceCmdService {
+
+    @Autowired
+    private DeviceCmdMapper deviceCmdMapper;
+
+    @Override
+    public List selectQueueCmd(String sn) {
+        return deviceCmdMapper.selectQueueCmd(sn);
+    }
+
+    @Override
+    public Integer insert(DeviceCmd deviceCmd) {
+        return deviceCmdMapper.insert(deviceCmd);
+    }
+
+    /**
+     * 将命令状态修改为已被消费
+     *
+     * @param msgId
+     * @return
+     */
+    @Override
+    public void updateStatusOk(String msgId) {
+        deviceCmdMapper.updateStatusOk(msgId);
+    }
+}

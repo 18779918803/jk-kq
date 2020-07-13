@@ -1,0 +1,109 @@
+package com.jk.sw.service.impl;
+
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.jk.common.base.BaseServiceImpl;
+import com.jk.common.bean.PageHelper;
+import com.jk.common.bean.Query;
+import com.jk.common.bean.ReturnBean;
+import com.jk.common.exception.KrtException;
+import com.jk.common.util.ShiroUtils;
+import com.jk.common.util.StringUtils;
+import com.jk.sw.constant.SwConst;
+import com.jk.sw.entity.SwProcess;
+import com.jk.sw.entity.SwTask;
+import com.jk.sw.service.ISwProcessService;
+import com.jk.sw.service.ISwTaskService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import com.jk.sw.entity.ReceivingRecords;
+import com.jk.sw.mapper.ReceivingRecordsMapper;
+import com.jk.sw.service.IReceivingRecordsService;
+import org.springframework.util.CollectionUtils;
+import java.io.Serializable;
+import java.util.*;
+
+
+/**
+ * 收文记录服务接口实现层
+ *
+ * @author 温龙飞
+ * @version 1.0
+ * @date 2020年06月06日
+ */
+@Service
+public class ReceivingRecordsServiceImpl extends BaseServiceImpl<ReceivingRecordsMapper, ReceivingRecords> implements IReceivingRecordsService {
+    @Autowired
+    private ISwTaskService swTaskService;
+    @Autowired
+    private ISwProcessService swProcessService;
+    @Autowired
+    private ReceivingRecordsMapper receivingRecordsMapper;
+
+    @Override
+    public IPage selectUsableList(Serializable usable, Serializable uid, Map para) {
+        Query query = new Query(para);
+        Page page = query.getPage();
+        PageHelper.startPage(page);
+        //DataScopeHelper.start();
+        para.put("usable", usable);
+        para.put("uid", uid);
+        List list = receivingRecordsMapper.selectUsableList(para);
+        //DataScopeHelper.remove();
+        page.setRecords(list);
+        return page;
+    }
+
+    /**审批页面数据请求*/
+    @Override
+    public ReturnBean instructionPage(Integer id) {
+        List<SwTask> swTasks = swTaskService.selectList(new QueryWrapper<SwTask>()
+                .eq("swid", id).eq("status", SwConst.TaskStatus.getValue("进行中")));
+        if (CollectionUtils.isEmpty(swTasks) || swTasks.get(0) == null
+                || swTasks.get(0).getId() == null){
+            return ReturnBean.error("任务不存在！");
+        }
+        if (swTasks.size() > 1){
+            return ReturnBean.error("任务异常，本收文含一个以上正在进行的任务");
+        }
+        ReceivingRecords receivingRecords = super.selectById(id);
+        List<SwProcess> processList = swProcessService.selectList(new QueryWrapper<SwProcess>().eq("task_id", swTasks.get(0).getId())
+                .eq("approver", ShiroUtils.getSessionUser().getId()));
+        if (CollectionUtils.isEmpty(processList) || processList.get(0) == null){
+            return ReturnBean.error("流程不存在！");
+        }
+        Map<String, Object> map = new HashMap(4);
+        map.put("url", receivingRecords.getAttachment());
+        map.put("taskId", swTasks.get(0).getId());
+        map.put("content", processList.get(0).getContent());
+        map.put("swid", id);
+        map.put("propose", receivingRecords.getPropose());
+        return ReturnBean.ok(map);
+    }
+
+    /**
+     * 根据收文ID获取最后一次任务的所有相关批示
+     * */
+    @Override
+    public ReturnBean instructionsBySwid(Integer id) {
+        StringBuffer sb = new StringBuffer();
+        List<SwTask> tasks = swTaskService.selectList(new QueryWrapper<SwTask>().eq("swid", id));
+        if (!CollectionUtils.isEmpty(tasks) && tasks.get(0)!=null){
+            Collections.sort(tasks);
+            SwTask task = tasks.get(0);
+
+            List<SwProcess> processList = swProcessService.selectList(new QueryWrapper<SwProcess>().eq("task_id", task.getId()));
+            if (!CollectionUtils.isEmpty(processList)){
+                for (SwProcess p : processList){
+                    if (StringUtils.isNotBlank(p.getContent())){
+                        sb.append(p.getUsername()+" : ");
+                        sb.append(p.getContent()==null? " ": p.getContent());
+                        sb.append("<br>");
+                    }
+                }
+            }
+        }
+        return ReturnBean.ok(sb.toString());
+    }
+}

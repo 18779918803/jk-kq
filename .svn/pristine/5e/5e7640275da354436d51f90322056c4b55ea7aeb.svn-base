@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jk.sw.mapper.SwTaskMapper">
+
+    <sql id="Base_Column_List">
+        id,task_id,task_name,swid,status,inserter,insert_time,updater,update_time
+    </sql>
+
+    <!-- 带参数查询任务列表 -->
+    <select id="selectPageList" resultType="com.jk.sw.entity.SwTask">
+        select
+            <include refid="Base_Column_List"/>
+        from sw_task where 1=1
+        <if test="taskId !=null and taskId!=''">
+            and task_id = #{taskId}
+        </if>
+        <if test="swid !=null and swid!=''">
+            and swid = #{swid}
+        </if>
+    </select>
+
+</mapper>
+

@@ -1,0 +1,172 @@
+package com.jk.kq.controller;
+
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.jk.common.annotation.KrtLog;
+import com.jk.common.base.BaseController;
+import com.jk.common.bean.DataTable;
+import com.jk.common.bean.ReturnBean;
+import com.jk.kq.entity.Holiday;
+import com.jk.kq.service.IHolidayService;
+import org.apache.shiro.authz.annotation.RequiresPermissions;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.beans.factory.annotation.Autowired;
+import java.util.Arrays;
+import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
+import org.springframework.ui.ModelMap;
+import cn.afterturn.easypoi.excel.entity.ExportParams;
+import cn.afterturn.easypoi.excel.entity.params.ExcelExportEntity;
+import cn.afterturn.easypoi.entity.vo.MapExcelConstants;
+import cn.afterturn.easypoi.entity.vo.NormalExcelConstants;
+
+/**
+ * 法定节假日控制层
+ *
+ * @author 何任鹏
+ * @version 1.0
+ * @date 2020年05月25日
+ */
+@Controller
+public class HolidayController extends BaseController {
+
+    @Autowired
+    private IHolidayService holidayService;
+
+    /**
+     * 法定节假日管理页
+     *
+     * @return {@link String}
+     */
+    @RequiresPermissions("Holiday:holiday:list")
+    @GetMapping("kq/holiday/list")
+    public String list() {
+        return "kq/holiday/list";
+    }
+
+    /**
+     * 法定节假日管理
+     *
+     * @param para 搜索参数
+     * @return {@link DataTable}
+     */
+    @RequiresPermissions("Holiday:holiday:list")
+    @PostMapping("kq/holiday/list")
+    @ResponseBody
+    public DataTable list(@RequestParam Map para) {
+        IPage page = holidayService.selectPageList(para);
+        return DataTable.ok(page);
+    }
+
+    /**
+     * 新增法定节假日页
+     *
+     * @return {@link String}
+     */
+    @RequiresPermissions("Holiday:holiday:insert")
+    @GetMapping("kq/holiday/insert")
+    public String insert() {
+        return "kq/holiday/insert";
+    }
+
+    /**
+     * 添加法定节假日
+     *
+     * @param holiday 法定节假日
+     * @return {@link ReturnBean}
+     */
+    @KrtLog("添加法定节假日")
+    @RequiresPermissions("Holiday:holiday:insert")
+    @PostMapping("kq/holiday/insert")
+    @ResponseBody
+    public ReturnBean insert(Holiday holiday) {
+        holidayService.insert(holiday);
+        return ReturnBean.ok();
+    }
+
+    /**
+     * 修改法定节假日页
+     *
+     * @param id 法定节假日id
+     * @return {@link String}
+     */
+    @RequiresPermissions("Holiday:holiday:update")
+    @GetMapping("kq/holiday/update")
+    public String update(Integer id) {
+        Holiday holiday = holidayService.selectById(id);
+        request.setAttribute("holiday", holiday);
+        return "kq/holiday/update";
+    }
+
+    /**
+     * 修改法定节假日
+     *
+     * @param holiday 法定节假日
+     * @return {@link ReturnBean}
+     */
+    @KrtLog("修改法定节假日")
+    @RequiresPermissions("Holiday:holiday:update")
+    @PostMapping("kq/holiday/update")
+    @ResponseBody
+    public ReturnBean update(Holiday holiday) {
+        holidayService.updateById(holiday);
+        return ReturnBean.ok();
+    }
+
+    /**
+     * 删除法定节假日
+     *
+     * @param id 法定节假日id
+     * @return {@link ReturnBean}
+     */
+    @KrtLog("删除法定节假日")
+    @RequiresPermissions("Holiday:holiday:delete")
+    @PostMapping("kq/holiday/delete")
+    @ResponseBody
+    public ReturnBean delete(Integer id) {
+        holidayService.deleteById(id);
+        return ReturnBean.ok();
+    }
+
+    /**
+     * 批量删除法定节假日
+     *
+     * @param ids 法定节假日ids
+     * @return {@link ReturnBean}
+     */
+    @KrtLog("批量删除法定节假日")
+    @RequiresPermissions("Holiday:holiday:delete")
+    @PostMapping("kq/holiday/deleteByIds")
+    @ResponseBody
+    public ReturnBean deleteByIds(Integer[] ids) {
+        holidayService.deleteByIds(Arrays.asList(ids));
+        return ReturnBean.ok();
+    }
+
+
+        /**
+        * 导出法定节假日
+        *
+        * @param modelMap 返回模型
+        * @param para 参数
+        */
+        @KrtLog("导出法定节假日")
+        @RequiresPermissions("Holiday:holiday:excelOut")
+        @GetMapping("kq/holiday/excelOut")
+        public String excelOut(ModelMap modelMap,Map para) {
+            List<ExcelExportEntity> entityList = new ArrayList<>();
+                entityList.add(new ExcelExportEntity("ID", "id", 15));
+                entityList.add(new ExcelExportEntity("日期", "date", 15));
+                entityList.add(new ExcelExportEntity("备注", "remark", 15));
+            List dataResult = holidayService.selectExcelList(para);
+            modelMap.put(MapExcelConstants.ENTITY_LIST, entityList);
+            modelMap.put(MapExcelConstants.MAP_LIST, dataResult);
+            modelMap.put(MapExcelConstants.FILE_NAME, "法定节假日");
+            modelMap.put(NormalExcelConstants.PARAMS, new ExportParams("法定节假日", "法定节假日"));
+            return MapExcelConstants.EASYPOI_MAP_EXCEL_VIEW;
+        }
+}

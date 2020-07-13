@@ -1,0 +1,462 @@
+<#include "/common/layoutList.ftl">
+<@header>
+<style>
+
+    div.dataTables_scrollBody tbody tr.tfooter td {
+            border-top: 1px solid #e6e6e6;;
+    }
+
+    .approval_box {
+        width: 120px;
+        height: 80px;
+        border: 2px solid transparent;
+        border-radius: 5px;
+        display: inline-block;
+        margin-right: 6px;
+        margin-left: 6px;
+    }
+        
+    .row-box {
+        text-align: center;
+    }
+    
+    .box-line {
+        height: 80px;
+        margin: auto;
+        display: flex;
+        justify-content: center;
+    }
+
+    .pass {
+        background-color: #90f1c6;
+    }
+    
+    .unpass {
+        background-color: #f79794;
+    }
+    
+    .arrows {
+        width: 40px;
+        height: 40px;
+    }
+    
+    .arrows_box {
+        width: 40px;
+        height: 40px;
+        border: 1px solid transparent;
+        margin: auto;
+    }
+    
+    .approval_box_p {
+        color: #fff;
+        text-align: center;
+    }
+    
+    .complete {
+        background-color: rgb(104, 203, 241);
+    }
+    .approverListBtn {}        
+    .updateApproverListBtn {}
+</style>
+</@header>
+<@body class="body-bg-default">
+    <div class="wrapper">
+        <section class="content">
+            <div class="row row-space15">
+                <div class="col-sm-6">
+                    <div class="box">
+                        <div class="box-header with-border">
+                            <h3 class="box-title">文件流转流程图</h3>
+                            <div class="box-tools">
+                                <button class="btn btn-box-tool" data-widget="collapse" id="refBtn" title="刷新">
+                                    <i class="fa fa-refresh"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="box-body row-box" id="row_box">
+                            
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-6">
+                    <div class="box-search">
+                        <div class="row row-search">
+                            <div class="col-xs-12">
+                                <form class="form-inline" action="">
+                                    <#--  暂无搜索  -->
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="box">
+                        <div class="box-body">
+                            <div class="table-toolbar" id="table-toolbar">
+                                <@shiro.hasPermission name="sw:swProcess:delete">
+                                    <button title="批量删除" class="btn btn-sm btn-danger" type="button"
+                                            id="deleteBatchBtn">
+                                        <i class="fa fa-trash fa-btn"></i>批量删除
+                                    </button>
+                                </@shiro.hasPermission>
+                            </div>
+                            <table id="datatable" class="table table-bordered table-hover table-krt">
+                                <tbody></tbody>
+                                <tr class="tfooter">
+                                    <td></td>
+                                    <td><input type="text" name="username" id="username0" class="form-control approverListBtn" readonly>
+                                        <input type="hidden" name="approver" id="approver0" class="form-control"></td>
+                                    <td><input type="number" name="sort" id="sort0" class="form-control"></td>                                   
+                                    <td>
+                                        <!-- 参数 -->
+                                        <input type="hidden" name="swid" id="swid0" value="${swid!}">
+                                        <input type="hidden" name="taskId" id="taskId0" value="${taskId!}">
+                                        <@shiro.hasPermission name="sw:swProcess:insert">
+                                            <button class="btn btn-xs btn-primary" id="insertBtn">
+                                                <i class="fa fa-plus fa-btn"></i>新增
+                                            </button>
+                                        </@shiro.hasPermission>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+</@body>
+<@footer>
+<script type="text/javascript">
+    var taskId =  $("#taskId0").val();
+    var passStatus = '';
+
+    $(function() {
+        //showlist();
+        showDataTable();
+        //新增
+        $("#insertBtn").click(function () {
+            var approver = $("#approver0").val();
+            if (approver == null || approver == '') {
+                krt.layer.msg("审批人ID不可为空！");
+                return false;
+            }
+            var name = $("#username0").val();
+            if (name == null || name == '') {
+                krt.layer.msg("审批人不可为空！");
+                return false;
+            }
+            var sort = $("#sort0").val();
+            if (sort == null || sort == '') {
+                krt.layer.msg("排序不可为空！");
+                return false;
+            }
+            krt.ajax({
+                type: "POST",
+                url: "${basePath}/sw/swProcess/insert",
+                data: {
+                    "swid": $("#swid0").val(),
+                    "taskId": $("#taskId0").val(),
+                    "username": $("#username0").val(),
+                    "approver": $("#approver0").val(),
+                    "sort": $("#sort0").val()
+                },
+                success: function (rb) {
+                    krt.layer.msg(rb.msg);
+                    if (rb.code == 200) {
+                        $("#username0").val("");
+                        $("#approverk0").val("");
+                        $("#sort0").val("");
+                        processMap();
+                        krt.table.reloadTable();
+                    }
+                }
+            });
+        });
+
+        //刷新流程图
+        $(document).on("click", "#refBtn", function () {
+            processMap();
+        });
+
+        //修改
+        $(document).on("click", ".updateBtn", function () {
+            var id = $(this).attr("rid");
+            
+            var name = $("#username" + id).val();
+            if (name == null || name == '') {
+                krt.layer.msg("审批人姓名不可为空！");
+                return false;
+            }
+            var sort = $("#sort" + id).val();
+            if (sort == null || sort == '') {
+                krt.layer.msg("排序不可为空！");
+                return false;
+            }
+            krt.ajax({
+                type: "POST",
+                url: "${basePath}/sw/swProcess/update",
+                data: {
+                    "id": id,
+                    "username": $("#username" + id).val(),
+                    "approver": $("#approver" + id).val(),
+                    "sort": $("#sort" + id).val()
+                },
+                success: function (rb) {
+                    krt.layer.msg(rb.msg);
+                    if (rb.code == 200) {
+                        processMap();
+                        krt.table.reloadTable();
+                    }
+                }
+            });
+        });
+
+        //删除
+        $(document).on("click", ".deleteBtn", function () {
+            var id = $(this).attr("rid");
+            krt.layer.confirm("你确定删除吗？", function () {
+                krt.ajax({
+                    type: "POST",
+                    url: "${basePath}/sw/swProcess/delete",
+                    data: {"id": id},
+                    success: function (rb) {
+                        krt.layer.msg(rb.msg);
+                        if (rb.code == 200) {
+                            processMap();
+                            krt.table.reloadTable();
+                        }
+                    },
+                });
+            });
+        });
+
+        //批量删除
+        $("#deleteBatchBtn").click(function () {
+            var ids = getIds();
+            if (ids == "") {
+                krt.layer.msg("请选择要删除的数据!");
+                return false;
+            } else {
+                krt.layer.confirm("你确定删除吗？", function () {
+                    krt.ajax({
+                        type: "POST",
+                        url: "${basePath}/sw/swProcess/deleteByIds",
+                        data: {"ids": ids},
+                        success: function (rb) {
+                            krt.layer.msg(rb.msg);
+                            if (rb.code == 200) {
+                                processMap();
+                                krt.table.reloadTable(ids);
+                            }
+                        }
+                    });
+                });
+            }
+        });
+
+        //选择审批人菜单
+        $(".approverListBtn").click(function () {
+            var url = "sw/swProcess/approver";
+            var id = $("#approver0").val();
+            var name = $("#username0").val();
+            krt.layer.open({
+                type: 2,
+                area: ['500px', '700px'],
+                title: "选择审批人",
+                maxmin: true,
+                content: "${basePath}/common/listSelect?url=" + encodeURI(url)+"&sId=" + id + "&sName=" + name,
+                btn: ['确定','取消', '关闭'],
+                yes: function (index, layero) {
+                    var sId = layero.find("iframe")[0].contentWindow.$("#sId").val();
+                    var sName = layero.find("iframe")[0].contentWindow.$("#sName").val();
+                    if (sId == null || sId == '') {
+                        krt.layer.msg("请选择审批人");
+                    } else {
+                        $("#username0").val(sName);
+                        $("#approver0").val(sId);
+                        krt.layer.close(index);
+                    }
+                },
+                btn2: function () {
+                    $("#username0").val("");
+                    $("#approver0").val("");
+                },
+                cancel: function (index) {
+                    krt.layer.close(index);
+                }
+            });
+        });
+
+         //选择审批人菜单
+        $(document).on("click", ".updateApproverListBtn", function () {        
+            var url = "sw/swProcess/approver";
+            var rid = $(this).attr("rid");
+            console.log(" rid:  " + rid);
+            var id = $("#approver" + rid).val();
+            var name = $("#username" + rid).val();
+            krt.layer.open({
+                type: 2,
+                area: ['500px', '700px'],
+                title: "选择审批人",
+                maxmin: true,
+                content: "${basePath}/common/listSelect?url=" + encodeURI(url)+"&sId=" + id + "&sName=" + name,
+                btn: ['确定','取消', '关闭'],
+                yes: function (index, layero) {
+                    var sId = layero.find("iframe")[0].contentWindow.$("#sId").val();
+                    var sName = layero.find("iframe")[0].contentWindow.$("#sName").val();
+                    if (sId == null || sId == '') {
+                        krt.layer.msg("请选择审批人");
+                    } else {
+                        $("#username" + rid).val(sName);
+                        $("#approver" + rid).val(sId);
+                        krt.layer.close(index);
+                    }
+                },
+                btn2: function () {
+                    $("#username" + rid).val("");
+                    $("#approver" + rid).val("");
+                },
+                cancel: function (index) {
+                    krt.layer.close(index);
+                }
+            });
+        });
+    })
+    
+    //流程图展示
+    var max = 0;
+    function showlist(dataList) {
+        var box = $("#row_box");
+        box.empty();
+        var completebox = '<div class="approval_box complete">' +
+            '<p class="approval_box_p">文件归档</p>' +
+            '</div>';
+        var arrows = '<div class="arrows_box">' +
+            '<img class="arrows" src="/kq/imgs/jiantou.png" alt="箭头">' + '</div>';
+            
+        max = 0;
+        for (let i = 0; i < dataList.length; i++) {
+            if (max < dataList[i].sort) {
+                max = dataList[i].sort;
+            }
+        }
+        var min = max;
+        for (let i = 0; i < dataList.length; i++) {
+            if (min > dataList[i].sort) {
+                min = dataList[i].sort;
+            }
+        }
+
+        for (let j = min; j <= max; j++) {
+            var flag = false;
+            for (let i = 0; i < dataList.length; i++) {
+                
+                if (j == dataList[i].sort) {
+                    if (dataList[i].status == 2) {
+                        passStatus = 'pass';
+                    } else if (dataList[i].status == 1) {
+                        passStatus = 'unpass';
+                    }
+                    var lie = '<div class="approval_box ' + passStatus + '">' +
+                        '<p class="approval_box_p">' + dataList[i].username + '</p>' +
+                        '</div>';
+
+                    box.append(lie);
+                    flag = true;
+                    <#--  if(i == dataList.length-1){
+                        flag = true;
+                    }else{
+                        flag = false;
+                    }  -->
+                }
+                //let o = 0;
+            }
+            
+            if(flag){
+                box.append(arrows);
+            }
+            flag = false;
+            if (j == max) {
+                box.append(completebox);
+            }
+        }
+    }
+
+    function processMap(){
+        krt.ajax({  
+            type: "POST",
+            url: "${basePath}/sw/swProcess/list",
+            data: {
+                "taskId": taskId,
+                "start": 0,
+                "length": 1000
+            },
+            success: function (rb) {
+                showlist(rb.data);
+            }
+        });
+    }
+
+    function showDataTable() {
+        datatable = $('#datatable').DataTable({
+            //order: [[6, 'asc']],
+            ajax: {
+                url: "${basePath}/sw/swProcess/list",
+                type: "post",
+                data: function (d) {
+                    d.taskId = taskId;
+                    d.orderName = krt.util.camel2Underline(d.columns[d.order[0].column].data);
+                    d.orderType = d.order[0].dir;
+                }
+            },
+            columns: [
+                {title: 'id', data: "id",visible:false},
+                {
+                    title: '<input type="checkbox" id="checkAll" class="icheck">',
+                    data: "id", class:"td-center", width:"40",orderable: false,
+                    render: function (data) {
+                        return '<input type="checkbox" class="icheck check" value="' + data + '">';
+                    }
+                },
+                {
+                    title: "审批人姓名",
+                    data: "username",
+                    render: function (data, type, row) {
+                        return '<input type="text" class="form-control updateApproverListBtn" name="username" value="' + row.username + '"  id="username' + row.id + '" rid="' + row.id + '"  class="form-control">'
+                                + '<input type="hidden" name="approver" value="' + row.approver + '" id="approver' + row.id + '"  class="form-control">';
+                    }
+                },
+                {
+                    title: "审批顺序",
+                    data: "sort",
+                    render: function (data, type, row) {
+                        return '<input type="text" name="sort" value="' + row.sort + '" id="sort' + row.id + '"  class="form-control">';
+                    }
+                },
+                {
+                    title: "操作",
+                    data: "id",
+                    //width: "300px",
+                    orderable: false,
+                    render: function (data, type, row) {
+                        return '<input type="hidden" name="id" value="' + row.id + '">'
+                                + '<@shiro.hasPermission name="sw:swProcess:update">'
+                                    + '<button class="btn btn-xs btn-warning updateBtn" rid="' + row.id + '">'
+                                    + '<i class="fa fa-edit fa-btn"></i>修改'
+                                    + '</button>'
+                                    + '</@shiro.hasPermission>'
+                                + '<@shiro.hasPermission name="sw:swProcess:delete">'
+                                    + '<button class="btn btn-xs btn-danger deleteBtn" rid="' + row.id + '">'
+                                    + '<i class="fa fa-trash fa-btn"></i>删除'
+                                    + '</button>'
+                                    + '</@shiro.hasPermission>';
+                    }
+                }
+            ]
+        });
+
+        processMap();
+        $("#sort0").attr("value", max+1);
+    }
+    
+</script>
+</@footer>

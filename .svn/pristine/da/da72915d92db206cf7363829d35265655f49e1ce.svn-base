@@ -1,0 +1,29 @@
+package com.jk.api.enums;
+
+
+/**
+ * 异常颜色处理对应类
+ */
+public enum IndexEnums {
+
+    //加班类型
+    OVERTIME("blue"),
+    //早退
+    EARLY_QUIT("red"),
+    //矿工
+    QUIT("red"),
+    //正常
+    NORMAL("yeallow");
+
+
+    private String state;
+
+    IndexEnums(String state) {
+        this.state = state;
+    }
+
+    public String getStatus() {
+        return state;
+    }
+
+}

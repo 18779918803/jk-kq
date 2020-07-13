@@ -1,0 +1,18 @@
+package com.jk.kq.mapper;
+
+import com.jk.common.base.BaseMapper;
+import org.apache.ibatis.annotations.Mapper;
+import com.jk.kq.entity.StatisReport;
+
+/**
+ * 个人维度报告映射层
+ *
+ * @author zhangwl
+ * @version 1.0
+ * @date 2020年06月18日
+ */
+@Mapper
+public interface StatisReportMapper extends BaseMapper<StatisReport> {
+
+
+}

@@ -1,0 +1,142 @@
+package com.jk.sw.service.impl;
+
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.jk.common.base.BaseServiceImpl;
+import com.jk.common.bean.ReturnBean;
+import com.jk.common.exception.KrtException;
+import com.jk.sw.constant.SwConst;
+import com.jk.sw.entity.SwProcess;
+import com.jk.sw.entity.SwUsable;
+import com.jk.sw.service.ISwProcessService;
+import com.jk.sw.service.ISwUsableService;
+import com.jk.sw.service.SendMsgService;
+import com.jk.sw.util.SwUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import com.jk.sw.entity.SwTask;
+import com.jk.sw.mapper.SwTaskMapper;
+import com.jk.sw.service.ISwTaskService;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.CollectionUtils;
+
+import java.io.Serializable;
+import java.util.*;
+
+
+/**
+ * 任务服务接口实现层
+ *
+ * @author 温龙飞
+ * @version 1.0
+ * @date 2020年06月07日
+ */
+@Service
+public class SwTaskServiceImpl extends BaseServiceImpl<SwTaskMapper, SwTask> implements ISwTaskService {
+
+    @Autowired
+    private SendMsgService sendMsgService;
+    @Autowired
+    private ISwUsableService swUsableService;
+    @Autowired
+    private ISwProcessService swProcessService;
+
+    @Override
+    public boolean insert(Serializable swid) {
+        int sw_len = super.selectCount(new QueryWrapper<SwTask>().eq("swid", swid));
+        boolean flag = false;
+        if (sw_len == 0){
+            flag = true;
+        }else {
+            int len = super.selectCount(new QueryWrapper<SwTask>().eq("swid", swid)
+                    .eq("status", SwConst.TaskStatus.getValue("未开始")).or()
+            .eq("status", SwConst.TaskStatus.getValue("进行中")).or()
+            .eq("status", SwConst.TaskStatus.getValue("完成")).or()
+            .eq("status", SwConst.TaskStatus.getValue("停止")));
+            if (len > 0){
+                throw new KrtException(ReturnBean.error("该收文已有任务完成或有任务进行中"));
+            }else {
+                flag = true;
+            }
+        }
+        if (flag){
+            SwTask swTask = new SwTask();
+            swTask.setSwid((int)swid);
+            swTask.setTaskId(SwUtils.generateTaskId());
+            //swTask.setTaskName();
+            swTask.setStatus(SwConst.TaskStatus.getValue("未开始"));
+            super.insert(swTask);
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public ReturnBean start(Serializable id) {
+        SwTask swTask = selectById(id);
+        if (swTask.getStatus() == SwConst.TaskStatus.getValue("驳回结束") ||
+            swTask.getStatus() == SwConst.TaskStatus.getValue("完成")){
+            return ReturnBean.error("任务结束不能启动");
+        }
+        if (swTask.getStatus() == SwConst.TaskStatus.getValue("进行中") ){
+            return ReturnBean.error("任务进行中不能启动");
+        }
+
+
+        List<SwProcess> processList = swProcessService.selectList(new QueryWrapper<SwProcess>()
+                .eq("task_id", id).eq("status", SwConst.ApprovalStatus.getValue("未批示").intValue()));
+
+        List<SwUsable> usableList = new ArrayList<>(processList.size());
+        if (CollectionUtils.isEmpty(processList) || processList.get(0)==null){
+            return ReturnBean.error("任务：" + id + " 任务未有审批人，启动失败");
+        }
+        SwProcess swProcess = processList.get(0);
+
+        Iterator<SwProcess> it = processList.iterator();
+        while (it.hasNext()){
+            SwProcess next = it.next();
+            SwUsable swUsable = new SwUsable();
+            if(next.getSort() == swProcess.getSort().intValue()){
+                swUsable.setUsable(SwConst.UsableScope.getValue("读写"));
+            } else {
+                swUsable.setUsable(SwConst.UsableScope.getValue("不可读写"));
+            }
+            swUsable.setSend(SwConst.IsOrNot.getValue("否"));
+            swUsable.setSwid(swProcess.getSwid());
+            swUsable.setUid(swProcess.getApprover());
+            usableList.add(swUsable);
+        }
+
+
+        swUsableService.insertBatch(usableList);
+
+        //List<String> opendIds = new ArrayList<>(processList.size());
+
+        //sendMsgService.sendToGZH(opendIds);
+        return ReturnBean.ok();
+    }
+
+    /**
+     * 停止任务，可再次启动恢复
+     * */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public ReturnBean stop(Serializable id) {
+        SwTask task = selectById(id);
+        if (task.getStatus() != SwConst.TaskStatus.getValue("进行中") ){
+            return ReturnBean.error("任务未进行不能停止");
+        }
+
+        SwTask swTask = new SwTask();
+        swTask.setStatus(SwConst.TaskStatus.getValue("停止"));
+        swTask.setId((int)id);
+        updateById(swTask);
+
+        SwUsable swUsable = new SwUsable();
+        swUsable.setUsable(SwConst.UsableScope.getValue("不可读写"));
+        swUsableService.update(swUsable, new QueryWrapper<SwUsable>().eq("swid", task.getSwid())
+                .eq("usable", SwConst.UsableScope.getValue("读写")));
+
+        return ReturnBean.ok();
+    }
+}

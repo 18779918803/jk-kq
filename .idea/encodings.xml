@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="Encoding">
+    <file url="file://$PROJECT_DIR$" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/jk-activiti" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/jk-api" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/jk-common" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/jk-db" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/jk-framework" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/jk-gen" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/jk-kq" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/jk-monitor" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/jk-plugins" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/jk-plugins/jk-plugin-activemq" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/jk-plugins/jk-plugin-captcha" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/jk-plugins/jk-plugin-ehcache" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/jk-plugins/jk-plugin-file" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/jk-plugins/jk-plugin-jpush" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/jk-plugins/jk-plugin-mail" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/jk-plugins/jk-plugin-oauth2" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/jk-plugins/jk-plugin-quartz" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/jk-plugins/jk-plugin-redis" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/jk-plugins/jk-plugin-websocket" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/jk-plugins/jk-plugin-wxpush" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/jk-sw" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/jk-sys" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/jk-web" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/jk-xcx" charset="UTF-8" />
+  </component>
+</project>

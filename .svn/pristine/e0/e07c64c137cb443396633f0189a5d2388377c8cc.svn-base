@@ -1,0 +1,26 @@
+package com.jk.sw.mapper;
+
+import com.jk.common.base.BaseMapper;
+import org.apache.ibatis.annotations.Mapper;
+import com.jk.sw.entity.ReceivingRecords;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
+import java.util.Map;
+
+/**
+ * 收文记录映射层
+ *
+ * @author 温龙飞
+ * @version 1.0
+ * @date 2020年06月06日
+ */
+@Mapper
+public interface ReceivingRecordsMapper extends BaseMapper<ReceivingRecords> {
+
+    List selectUsableList(Map para);
+
+    List selectOrganByUid(@Param("uid") Integer uid);
+
+    String selectTextById(@Param("id") Integer id);
+}

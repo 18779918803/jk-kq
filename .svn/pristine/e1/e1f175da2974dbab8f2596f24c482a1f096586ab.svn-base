@@ -1,0 +1,49 @@
+package com.jk.kq.service;
+
+import com.jk.common.base.IBaseService;
+import com.jk.kq.entity.OpenUser;
+import com.jk.kq.entity.OvertimeRecord;
+
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+
+
+/**
+ * 加班申请服务接口层
+ *
+ * @author 何任鹏
+ * @version 1.0
+ * @date 2020年06月01日
+ */
+public interface IOvertimeRecordService extends IBaseService<OvertimeRecord> {
+
+    /**
+     * 通过OpenUserId查找当月用户的加班记录
+     *
+     * @param openUserId
+     * @param date
+     * @return
+     */
+    List<OvertimeRecord> selectByOpenUserIdAndDate(Integer openUserId, Date date);
+
+    /**
+     * 新增加班申请记录
+     * 在这里应该查找自己的上一级领导，将待审核的模板消息推送给他
+     *
+     * @param openUser
+     * @param overtimeRecord
+     * @return  返回该申请需要推送的用户的集合
+     */
+    List<OpenUser> insert(OpenUser openUser, OvertimeRecord overtimeRecord);
+
+    /**
+     * 查找用户可以审核的加班申请
+     *
+     * @param queryMap
+     */
+    List selectToCheck(Map queryMap);
+
+
+
+}

@@ -1,0 +1,82 @@
+package com.jk.api.vo;
+
+import com.jk.sys.entity.Organ;
+import com.jk.sys.entity.Role;
+import io.swagger.annotations.ApiModel;
+import io.swagger.annotations.ApiModelProperty;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
+
+import java.util.Date;
+import java.util.List;
+
+/**
+ * 登录用户VO
+ *
+ * @author 缪隽峰
+ * @version 1.0
+ * @date 2019年12月25日
+ */
+@ApiModel(value = "登录用户信息")
+@Data
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
+public class UserVo {
+
+    @ApiModelProperty(value = "用户名")
+    private String avatar;
+
+    @ApiModelProperty(value = "用户名")
+    private String username;
+
+    @ApiModelProperty(value = "姓名")
+    private String name;
+
+    @ApiModelProperty(value = "生日")
+    @DateTimeFormat(pattern = "yyyy-MM-dd")
+    private Date birthday;
+
+    @ApiModelProperty(value = "性别（1：男 2：女）")
+    private Integer sex;
+
+    @ApiModelProperty(value = "手机号码")
+    private String phone;
+
+    @ApiModelProperty(value = "机构编码")
+    private Integer organId;
+
+    /**
+     * 部门
+     */
+    private String organ;
+
+    /**
+     * 角色
+     */
+    private String role;
+
+    /**
+     * roleId
+     */
+    private Integer roleId;
+
+
+    private String state;
+
+    /**
+     * 部门
+     */
+    private List<Organ> organs;
+
+
+    /**
+     * 角色
+     */
+    private List<Role> roles;
+
+
+}

@@ -1,0 +1,82 @@
+package com.jk.api.controller;
+
+
+
+import com.jk.api.service.ApiService;
+import com.jk.api.util.PushMsg;
+import com.jk.common.annotation.KrtIgnoreAuth;
+import com.jk.common.base.BaseController;
+import com.jk.common.bean.ReturnBean;
+import com.jk.common.bean.ReturnCode;
+import com.jk.common.exception.KrtException;
+import com.jk.kq.common.GeneralConvertor;
+import com.jk.kq.entity.LeaveRecord;
+import com.jk.kq.entity.OpenUser;
+import com.jk.kq.service.IClockService;
+import com.jk.kq.service.ILeaveRecordService;
+import com.jk.kq.service.IWorkTypeService;
+import com.jk.kq.utils.TaskUtilService;
+import com.jk.sys.entity.Organ;
+import com.jk.sys.entity.User;
+import com.jk.sys.service.IOrganService;
+import com.jk.sys.service.IUserService;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.*;
+
+import java.math.BigDecimal;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * 请假记录相关的微信小程序API接口
+ *
+ * @author 何任鹏
+ * @version 1.0
+ * @date 2020年06月01日
+ */
+@RestController
+@RequestMapping("api/send")
+@Slf4j
+public class SendApi extends BaseController {
+
+
+    @Autowired
+    private IClockService iClockService;
+
+    @Autowired
+    private IUserService userService;
+
+//    /**
+//     * 查找所有的请假记录类型
+//     * @return
+//     */
+//    @KrtIgnoreAuth
+//    @GetMapping("type")
+//    public ReturnBean types() {
+//        List<WorkType> leaveTypes = workTypeService.selectByPid(WorkTypeConfig.LEAVE);
+//        return ReturnBean.ok(leaveTypes);
+//    }
+
+    /**
+     * 新增用户请假申请
+     *
+     * @return
+     */
+    @KrtIgnoreAuth
+    @PostMapping("insert")
+    @Transactional
+    public ReturnBean insert(@RequestParam("userName") String userName,
+                             @RequestParam("time") Date time,
+                             @RequestParam("type") Integer type
+    ) {
+
+
+        //iClockService.insert();
+
+        return ReturnBean.ok();
+    }
+}

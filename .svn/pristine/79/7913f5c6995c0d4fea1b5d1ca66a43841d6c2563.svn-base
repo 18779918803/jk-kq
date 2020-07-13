@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <artifactId>jk</artifactId>
+        <groupId>com.jk</groupId>
+        <version>3.1.4</version>
+    </parent>
+
+    <artifactId>jk-api</artifactId>
+    <name>jk-api</name>
+    <url>http://www.xizinet.com</url>
+    <description>系统接口</description>
+
+    <dependencies>
+        <!-- 公共工具 -->
+        <dependency>
+            <groupId>com.jk</groupId>
+            <artifactId>jk-common</artifactId>
+            <version>3.1.4</version>
+        </dependency>
+        <!-- 公共工具 -->
+        <dependency>
+            <groupId>com.jk</groupId>
+            <artifactId>jk-kq</artifactId>
+            <version>3.1.4</version>
+        </dependency>
+        <!-- 系统管理 -->
+        <dependency>
+            <groupId>com.jk</groupId>
+            <artifactId>jk-sys</artifactId>
+            <version>3.1.4</version>
+        </dependency>
+        <!-- oauth2 -->
+        <dependency>
+            <groupId>com.jk</groupId>
+            <artifactId>jk-plugin-oauth2</artifactId>
+            <version>3.1.4</version>
+        </dependency>
+        <!-- 极光推送 -->
+        <dependency>
+            <groupId>com.jk</groupId>
+            <artifactId>jk-plugin-jpush</artifactId>
+            <version>3.1.4</version>
+        </dependency>
+    </dependencies>
+</project>

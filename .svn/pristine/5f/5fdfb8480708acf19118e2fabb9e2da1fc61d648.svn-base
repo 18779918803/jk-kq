@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jk.sw.mapper.SwCommonMapper">
+
+    <!--  通过系统用户ID查询公众号OpenID -->
+    <select id="selectGZHOpenIDBySysUserId" resultType="java.lang.String">
+        SELECT
+            gou.openid
+        FROM
+        ( SELECT id, union_id ,user_id FROM jk_open_user WHERE user_id = #{userId}) ou
+        INNER JOIN ( SELECT openid,unionid FROM jk_gzh_open_user ) gou ON ou.union_id = gou.unionid
+    </select>
+
+    <!--  通过用户ID查询该用户所在机构的全体用户 -->
+    <select id="selectUserOrganByUid" resultType="com.jk.sys.entity.User">
+        SELECT
+        u.username,
+        u.NAME
+        FROM
+        sys_user u
+        INNER JOIN jk_user_organs o ON o.user_id = u.id
+        INNER JOIN ( SELECT organ_id FROM jk_user_organs WHERE user_id = #{uid} ) uo ON uo.organ_id = o.organ_id
+        WHERE
+        1 = 1
+    </select>
+
+    <!-- 查询不含该角色的用户 -->
+    <select id="selectUsersByIsNotRoleId" resultType="com.jk.sys.entity.User">
+        select s2.id,s2.name,s2.username from
+        (select user_id,role_id from sys_user_role where role_id <![CDATA[!= ]]> #{roleId})s1 inner JOIN
+        (select id,name,username from sys_user)s2 on s1.user_id = s2.id
+        where 1 = 1
+    </select>
+
+    <!-- 通过角色名称查询为该角色的用户 -->
+    <select id="selectUsersByRoleName" resultType="com.jk.sys.entity.User">
+        SELECT
+        s2.id,
+        s2.name,
+        s2.username
+        FROM
+        ( SELECT name, id FROM sys_role WHERE NAME = #{name} ) r
+        INNER JOIN  ( SELECT user_id, role_id FROM sys_user_role ) s1 ON r.id = s1.role_id
+        INNER JOIN ( SELECT id, name, username FROM sys_user ) s2 ON s1.user_id = s2.id
+        WHERE
+        1 = 1
+    </select>
+</mapper>
+

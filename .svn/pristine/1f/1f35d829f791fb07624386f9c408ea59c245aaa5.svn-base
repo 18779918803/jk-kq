@@ -1,0 +1,107 @@
+package com.jk.kq.service.impl;
+
+import com.jk.kq.entity.OpenUser;
+import com.jk.kq.entity.OvertimeRecord;
+import com.jk.kq.entity.Position;
+import com.jk.kq.mapper.OpenUserMapper;
+import com.jk.kq.service.IOpenUserService;
+import com.jk.kq.service.IPositionService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import com.jk.kq.entity.LeaveRecord;
+import com.jk.kq.mapper.LeaveRecordMapper;
+import com.jk.kq.service.ILeaveRecordService;
+import com.jk.common.base.BaseServiceImpl;
+
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+
+
+/**
+ * 请假申请服务接口实现层
+ *
+ * @author 何任鹏
+ * @version 1.0
+ * @date 2020年06月01日
+ */
+@Service
+public class LeaveRecordServiceImpl extends BaseServiceImpl<LeaveRecordMapper, LeaveRecord> implements ILeaveRecordService {
+
+    @Autowired
+    private LeaveRecordMapper leaveRecordMapper;
+
+    @Autowired
+    private IPositionService positionService;
+
+    @Autowired
+    private OpenUserMapper openUserMapper;
+
+    /**
+     * 通过openUserId查找所有的请假记录
+     *
+     * @param openUserId
+     * @param date
+     * @return
+     */
+    @Override
+    public List<LeaveRecord> selectByOpenUserIdAndDate(Integer openUserId, Date date) {
+        return leaveRecordMapper.selectByOpenUserIdAndDate(openUserId, date);
+    }
+
+    /**
+     * 新增用户请假申请
+     *
+     * @param openUser
+     * @param leaveRecord
+     * @return 返回该申请需要推送的用户的集合
+     */
+    @Override
+    public List<OpenUser> insert(OpenUser openUser, LeaveRecord leaveRecord) {
+        leaveRecord.setOpenUserId(openUser.getId());
+        leaveRecord.setName(openUser.getName());
+        leaveRecord.setOrganId(openUser.getOrganId());
+        leaveRecord.setOrgan(openUser.getOrgan());
+        //查找用户的职位信息
+        Position position = positionService.selectById(openUser.getPositionId());
+        //用户的申请初始状态等于用户的职位审批等级
+        leaveRecord.setState(position.getGrade());
+        List<OpenUser> checkList = null;
+        //一般员工
+        if (position.getGrade() == 0) {
+            //请假1天～3天（含 3天），呈部门负责人和分管领导审批，
+            if (leaveRecord.getDay() <= 3) {
+                leaveRecord.setTopState(2);
+            } else {
+                //请假 3 天以上，呈部门负责人、分管领导和集团总经理审批；
+                leaveRecord.setTopState(3);
+            }
+            //给同部门的上一级领导审批
+            checkList = openUserMapper.selectOpenUser(openUser.getOrganId(), position.getGrade() + 1);
+        } else if (position.getGrade() > 0) {
+            //部门正副职请假 1天～3天（含 3天），呈分管领导和集团总经理审批；
+            if (leaveRecord.getDay() <= 3) {
+                leaveRecord.setTopState(3);
+            } else {
+                //请假 3天以上，呈分管领导、集团总经理和董事长审批。
+                leaveRecord.setTopState(4);
+            }
+            //如果是公司部门负责人，那么查找分管领导进行推送
+            checkList = openUserMapper.selectLeaders(openUser.getOrganId(), position.getGrade() + 1);
+        }
+        //集团分管领导不走审批
+        leaveRecordMapper.insert(leaveRecord);
+        return checkList;
+    }
+
+    /**
+     * 查找用户可以审核的请假申请
+     *
+     * @param queryMap
+     * @return
+     */
+    @Override
+    public List selectToCheck(Map queryMap) {
+        return leaveRecordMapper.selectToCheck(queryMap);
+    }
+}

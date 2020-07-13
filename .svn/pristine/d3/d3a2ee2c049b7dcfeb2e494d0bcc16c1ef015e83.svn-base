@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jk.db.mapper.DbApplyMapper">
+
+    <sql id="Base_Column_List">
+        db_type,db_id,db_source,db_lw_date,lead_department_id,responsibility_department_id,db_lw_content,db_content_brief,db_ask_finaltime,db_level,lead_department,responsibility_department,department_principal,charge_lead,manager_advice,inserter,insert_time,updater,update_time,id,president_advice,status,instance_id,create_by,create_time,update_by,update_time,apply_user,apply_time
+    </sql>
+
+    <!-- 带参数查询督查督办申请表列表 -->
+    <select id="selectPageList" resultType="com.jk.db.entity.DbApply">
+        select
+            <include refid="Base_Column_List"/>
+        from db_apply where 1=1
+            <if test="dbType !=null and dbType!=''">
+                        and db_type = #{dbType}
+            </if>
+            <if test="dbId !=null and dbId!=''">
+                        and db_id = #{dbId}
+            </if>
+            <if test="dbAskFinaltime !=null and dbAskFinaltime!=''">
+                    <![CDATA[ and db_ask_finaltime <= #{dbAskFinaltime} ]]>
+            </if>
+    </select>
+
+    <!-- 带参数查询督查督办申请表列表 -->
+    <select id="selectPageMap" resultType="java.util.Map">
+        select db_type,db_id,db_source,db_lw_date,lead_department_id,responsibility_department_id,
+        db_lw_content,db_content_brief,db_ask_finaltime,db_level,
+        (select so.name from sys_organ so where db.lead_department_id = so.id) as lead_department,
+        (select so.name from sys_organ so where db.responsibility_department_id = so.id) as responsibility_department,department_principal,charge_lead,manager_advice,
+        id,president_advice,status,instance_id,create_by,create_time,update_by,update_time,apply_user,apply_time
+        from db_apply db
+        where 1=1
+        <if test="dbType !=null and dbType!=''">
+            and db_type = #{dbType}
+        </if>
+        <if test="dbId !=null and dbId!=''">
+            and db_id = #{dbId}
+        </if>
+        <if test="dbAskFinaltime !=null and dbAskFinaltime!=''">
+            <![CDATA[ and db_ask_finaltime <= #{dbAskFinaltime} ]]>
+        </if>
+    </select>
+
+    <select id="getUserByRoleAndOrgan" resultType="com.jk.sys.entity.User">
+      select  *  from  sys_user  where  1=1 and  organ_id=#{organId} and  id  in  (select user_id  from
+      sys_user_role    where  role_id  =(select  id  from sys_role  WHERE  name=#{name}))
+    </select>
+
+</mapper>
+

@@ -1,0 +1,50 @@
+package com.jk.kq.service.impl;
+
+import com.jk.kq.mapper.ChekcMapper;
+import com.jk.kq.service.ICheckService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.Date;
+import java.util.List;
+
+/**
+ * 审核用户申请
+ *
+ * @author 何任鹏
+ * @version 1.0
+ * @date 2020年06月03日
+ */
+@Service
+public class CheckServiceImpl implements ICheckService {
+
+    @Autowired
+    private ChekcMapper chekcMapper;
+
+
+    /**
+     * 添加申请流程记录
+     *
+     * @param pid
+     * @param id
+     * @param openUserId
+     * @param checkState
+     */
+    @Override
+    public void addCheckProcess(Integer pid, Integer id, Integer openUserId, Integer checkState, Date insertTime) {
+        chekcMapper.addCheckProcess(pid, id, openUserId, checkState,insertTime);
+    }
+
+    /**
+     * 获取单个记录的审批流程记录
+     * @param pid
+     * @param id
+     * @return
+     */
+    @Override
+    public List getcurrentRecordDetail(Integer pid, Integer id) {
+        return chekcMapper.getcurrentRecordDetail(pid,id);
+    }
+
+
+}

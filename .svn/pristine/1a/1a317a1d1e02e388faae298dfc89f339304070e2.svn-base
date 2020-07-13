@@ -1,0 +1,38 @@
+package com.jk.kq.mapper;
+
+import com.jk.common.base.BaseMapper;
+import com.jk.kq.entity.OvertimeRecord;
+import org.apache.ibatis.annotations.Mapper;
+import com.jk.kq.entity.TravelRecord;
+
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * 出差申请映射层
+ *
+ * @author 何任鹏
+ * @version 1.0
+ * @date 2020年06月01日
+ */
+@Mapper
+public interface TravelRecordMapper extends BaseMapper<TravelRecord> {
+
+    /**
+     * 通过openUserId查找当月的出差记录
+     *
+     * @param openUserId
+     * @param date
+     * @return
+     */
+    List<TravelRecord> selectByOpenUserIdAndDate(Long openUserId, Date date);
+
+    /**
+     * 找该用户等级可以审核的出差申请
+     *
+     * @param queryMap
+     * @return
+     */
+    List selectToCheck(Map queryMap);
+}

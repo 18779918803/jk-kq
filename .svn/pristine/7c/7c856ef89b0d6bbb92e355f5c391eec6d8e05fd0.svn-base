@@ -1,0 +1,157 @@
+package com.jk.api.controller;
+
+import com.jk.api.enums.TypeEnums;
+import com.jk.api.service.ApiService;
+import com.jk.api.util.PushMsg;
+import com.jk.common.annotation.KrtIgnoreAuth;
+import com.jk.common.base.BaseController;
+import com.jk.common.bean.ReturnBean;
+import com.jk.common.bean.ReturnCode;
+import com.jk.common.exception.KrtException;
+import com.jk.common.util.DateUtils;
+import com.jk.kq.entity.OpenUser;
+import com.jk.kq.entity.OvertimeRecord;
+import com.jk.kq.service.IHolidayService;
+import com.jk.kq.service.IOvertimeRecordService;
+import com.jk.kq.service.IWorkTypeService;
+import com.jk.kq.utils.DateUtil;
+import com.jk.kq.utils.TaskUtilService;
+import com.jk.sys.entity.Organ;
+import com.jk.sys.entity.User;
+import com.jk.sys.service.IOrganService;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.*;
+
+/**
+ * 加班记录微信小程序API接口
+ *
+ * @author 何任鹏
+ * @version 1.0
+ * @date 2020年06月01日
+ */
+@Slf4j
+@Controller
+@RestController
+@RequestMapping("api/overtime")
+public class ApiOvertimeController extends BaseController {
+
+    @Autowired
+    private IOvertimeRecordService overtimeRecordService;
+
+    @Autowired
+    private ApiService apiService;
+
+    @Autowired
+    private IHolidayService holidayService;
+
+    @Autowired
+    TaskUtilService taskUtilService;
+
+    @Autowired
+    private IOrganService organService;
+
+    @Autowired
+    private PushMsg pushMsg;
+
+
+    /**
+     * 查找所有的加班记录，可以通过月份查找
+     * @param dto dto
+     * @return
+     */
+    @KrtIgnoreAuth
+    @PostMapping("list")
+    public ReturnBean list(@RequestParam("date") String date)   {
+        User user = apiService.getUser(request);
+        List<Map> overtimeRecords = overtimeRecordService.selectHistory(user.getId(), date);
+        for (Map overtimeRecord : overtimeRecords) {
+            String instanceId = (String)overtimeRecord.get("instanceId");
+            Map<String, Integer> end = taskUtilService.isEnd(instanceId);
+            Integer isEnd = end.get("isEnd");
+            Integer isPass = end.get("isPass");
+            Integer typeId = (Integer) overtimeRecord.get("typeId");
+            if (isEnd.equals(2)){
+                overtimeRecord.put("statusName", "等待审批");
+            }else {
+                if( isPass.equals(1) ) {
+                    overtimeRecord.put("statusName", "审批通过");
+                }else{
+                    overtimeRecord.put("statusName", "审批拒绝");
+                }
+            }
+            if( typeId == 1 ){
+                overtimeRecord.put("typeName", "工作日加班");
+            }else if( typeId == 2 ){
+                overtimeRecord.put("typeName", "工作日加班");
+            }else if( typeId == 3 ){
+                overtimeRecord.put("typeName", "节假日加班");
+            }
+            overtimeRecord.put("pid",TypeEnums.OVERTIME.getStatus());
+            overtimeRecord.remove("instanceId");
+        }
+        return ReturnBean.ok(overtimeRecords);
+    }
+
+//    /**
+//     * 查找所有的加班记录类型
+//     *
+//     * @return
+//     */
+//    @KrtIgnoreAuth
+//    @PostMapping("type")
+//    @ResponseBody
+//    public ReturnBean types() {
+//        List<WorkType> overtimeTypes = workTypeService.selectByPid(WorkTypeConfig.OVERTIME);
+//        return ReturnBean.ok(overtimeTypes);
+//    }
+
+    /**
+     * 新增用户加班申请
+     * 当用户新增加班申请的时候，应该推送模板消息给领导
+     * @return
+     */
+    @KrtIgnoreAuth
+    @PostMapping("insert")
+    @Transactional
+    public ReturnBean insert(@RequestParam("date") String date, @RequestParam("reason") String reason)   {
+        User user = apiService.getUser(request);
+        OpenUser openUser = apiService.getOpenUser(request);
+
+        int level = apiService.selectRole(user.getRoles());
+        if (level == 0){
+            throw new KrtException(ReturnBean.error(ReturnCode.INVALID_REQUEST.getCode(),
+                    "发起申请人角色无定义"));
+        }
+        //判断当前用户的角色
+        Map<String,Object> map = new HashMap<>();
+        map.put("overtime", level);
+
+        Organ organ = organService.selectById(user.getOrganId());
+
+        OvertimeRecord overtime = new OvertimeRecord();
+        overtime.setTypeId(holidayService.holiday(date));
+        overtime.setDate(DateUtils.stringToDate("yyyy-MM-dd", date));
+        overtime.setReason(reason);
+        overtime.setUserId(user.getId());
+        overtime.setName(user.getName());
+        overtime.setOrgan(organ.getName());
+        overtime.setOrganId(user.getOrganId());
+        overtime.setInserter(openUser.getId());
+
+        overtimeRecordService.insert(overtime);
+        overtimeRecordService.submitApply(overtime, user.getId().toString(),"overtime", map);
+
+        OvertimeRecord overtimeRecord = overtimeRecordService.selectById(overtime.getId());
+        List<User> ids = apiService.nextHandel(overtimeRecord.getInstanceId());
+        pushMsg.push(ids,"加班申请", reason);
+        return ReturnBean.ok();
+    }
+
+}

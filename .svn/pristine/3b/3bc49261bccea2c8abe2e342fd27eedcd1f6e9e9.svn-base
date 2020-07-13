@@ -1,0 +1,83 @@
+package com.jk.kq.entity;
+
+import com.baomidou.mybatisplus.annotation.TableName;
+import com.jk.common.base.BaseEntity;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+
+import java.time.LocalDateTime;
+import java.util.Date;
+import org.springframework.format.annotation.DateTimeFormat;
+
+/**
+ * 加班申请实体类
+ *
+ * @author 何任鹏
+ * @version 1.0
+ * @date 2020年06月01日
+ */
+@Data
+@NoArgsConstructor
+@EqualsAndHashCode(callSuper = false)
+@TableName("jk_overtime_record")
+public class OvertimeRecord extends BaseEntity {
+
+    /**
+     * user_id
+     */
+    private Long userId;
+
+    /**
+     * 姓名
+     */
+    private String name;
+
+    /**
+     * 公司ID/部门ID
+     */
+    private Integer organId;
+
+    /**
+     * 公司/部门
+     */
+    private String organ;
+
+    /**
+     * 加班结束时间
+     */
+    @DateTimeFormat(pattern = "yyyy-MM-dd")
+    private LocalDateTime startDate;
+
+    /**
+     * 加班开始时间
+     */
+    @DateTimeFormat(pattern = "yyyy-MM-dd")
+    private LocalDateTime endDate;
+
+    /**
+     * 加班原因
+     */
+    private String reason;
+
+    /**
+     * 加班天数
+     */
+    private Double day;
+
+    /**
+     * 申请状态
+     */
+    private Integer state;
+
+    /**
+     * 申请审批完成状态
+     */
+    private Integer topState;
+
+    /**
+     * 加班类型
+     */
+    private Integer typeId;
+
+}

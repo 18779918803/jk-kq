@@ -1,0 +1,11 @@
+{
+  "hints": [],
+  "groups": [
+    {
+      "sourceType": "com.jk.activiti.config.Global",
+      "name": "ruoyi",
+      "type": "com.jk.activiti.config.Global"
+    }
+  ],
+  "properties": []
+}

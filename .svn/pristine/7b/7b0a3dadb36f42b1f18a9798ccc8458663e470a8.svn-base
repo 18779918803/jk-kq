@@ -1,0 +1,181 @@
+package com.jk.kq.controller;
+
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.jk.common.annotation.KrtLog;
+import com.jk.common.base.BaseController;
+import com.jk.common.bean.DataTable;
+import com.jk.common.bean.ReturnBean;
+import com.jk.common.exception.KqException;
+import com.jk.kq.entity.PunchRecord;
+import com.jk.kq.service.IOpenUserService;
+import com.jk.kq.service.IPunchRecordService;
+import org.apache.shiro.authz.annotation.RequiresPermissions;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.beans.factory.annotation.Autowired;
+import java.util.Arrays;
+import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
+import org.springframework.ui.ModelMap;
+import cn.afterturn.easypoi.excel.entity.ExportParams;
+import cn.afterturn.easypoi.excel.entity.params.ExcelExportEntity;
+import cn.afterturn.easypoi.entity.vo.MapExcelConstants;
+import cn.afterturn.easypoi.entity.vo.NormalExcelConstants;
+
+/**
+ * 打卡记录控制层
+ *
+ * @author 何任鹏
+ * @version 1.0
+ * @date 2020年05月25日
+ */
+@Controller
+public class PunchRecordController extends BaseController {
+
+    @Autowired
+    private IPunchRecordService punchRecordService;
+
+    @Autowired
+    private IOpenUserService openUserService;
+
+    /**
+     * 打卡记录管理页
+     *
+     * @return {@link String}
+     */
+    @RequiresPermissions("PunchRecord:punchRecord:list")
+    @GetMapping("kq/punchRecord/list")
+    public String list() {
+        return "kq/punchRecord/list";
+    }
+
+    /**
+     * 打卡记录管理
+     *
+     * @param para 搜索参数
+     * @return {@link DataTable}
+     */
+    @RequiresPermissions("PunchRecord:punchRecord:list")
+    @PostMapping("kq/punchRecord/list")
+    @ResponseBody
+    public DataTable list(@RequestParam Map para) {
+        IPage page = punchRecordService.selectPageList(para);
+        return DataTable.ok(page);
+    }
+
+    /**
+     * 新增打卡记录页
+     *
+     * @return {@link String}
+     */
+    @RequiresPermissions("PunchRecord:punchRecord:insert")
+    @GetMapping("kq/punchRecord/insert")
+    public String insert() {
+        return "kq/punchRecord/insert";
+    }
+
+    /**
+     * 添加打卡记录
+     *
+     * @param punchRecord 打卡记录
+     * @return {@link ReturnBean}
+     */
+    @KrtLog("添加打卡记录")
+    @RequiresPermissions("PunchRecord:punchRecord:insert")
+    @PostMapping("kq/punchRecord/insert")
+    @ResponseBody
+    public ReturnBean insert(PunchRecord punchRecord) {
+        punchRecordService.insert(punchRecord);
+        return ReturnBean.ok();
+    }
+
+    /**
+     * 修改打卡记录页
+     *
+     * @param id 打卡记录id
+     * @return {@link String}
+     */
+    @RequiresPermissions("PunchRecord:punchRecord:update")
+    @GetMapping("kq/punchRecord/update")
+    public String update(Integer id,String name) {
+        PunchRecord punchRecord = punchRecordService.selectById(id);
+        request.setAttribute("punchRecord", punchRecord);
+        request.setAttribute("punchRecordName",name);
+        return "kq/punchRecord/update";
+    }
+
+    /**
+     * 修改打卡记录
+     *
+     * @param punchRecord 打卡记录
+     * @return {@link ReturnBean}
+     */
+    @KrtLog("修改打卡记录")
+    @RequiresPermissions("PunchRecord:punchRecord:update")
+    @PostMapping("kq/punchRecord/update")
+    @ResponseBody
+    public ReturnBean update(PunchRecord punchRecord) {
+        punchRecordService.updateById(punchRecord);
+        return ReturnBean.ok();
+    }
+
+    /**
+     * 删除打卡记录
+     *
+     * @param id 打卡记录id
+     * @return {@link ReturnBean}
+     */
+    @KrtLog("删除打卡记录")
+    @RequiresPermissions("PunchRecord:punchRecord:delete")
+    @PostMapping("kq/punchRecord/delete")
+    @ResponseBody
+    public ReturnBean delete(Integer id) throws KqException {
+        punchRecordService.deleteById(id);
+        return ReturnBean.ok();
+    }
+
+    /**
+     * 批量删除打卡记录
+     *
+     * @param ids 打卡记录ids
+     * @return {@link ReturnBean}
+     */
+    @KrtLog("批量删除打卡记录")
+    @RequiresPermissions("PunchRecord:punchRecord:delete")
+    @PostMapping("kq/punchRecord/deleteByIds")
+    @ResponseBody
+    public ReturnBean deleteByIds(Integer[] ids) throws KqException {
+        punchRecordService.deleteByIds(Arrays.asList(ids));
+        return ReturnBean.ok();
+    }
+
+
+        /**
+        * 导出打卡记录
+        *
+        * @param modelMap 返回模型
+        * @param para 参数
+        */
+        @KrtLog("导出打卡记录")
+        @RequiresPermissions("PunchRecord:punchRecord:excelOut")
+        @GetMapping("kq/punchRecord/excelOut")
+        public String excelOut(ModelMap modelMap,Map para) {
+            List<ExcelExportEntity> entityList = new ArrayList<>();
+                entityList.add(new ExcelExportEntity("ID", "id", 15));
+                entityList.add(new ExcelExportEntity("姓名", "openUserId", 15));
+                entityList.add(new ExcelExportEntity("设备", "deviceId", 15));
+                entityList.add(new ExcelExportEntity("公司/部门", "organ", 15));
+                entityList.add(new ExcelExportEntity("打卡时间", "punchTime", 15));
+                entityList.add(new ExcelExportEntity("打卡状态", "punchState", 15));
+            List dataResult = punchRecordService.selectExcelList(para);
+            modelMap.put(MapExcelConstants.ENTITY_LIST, entityList);
+            modelMap.put(MapExcelConstants.MAP_LIST, dataResult);
+            modelMap.put(MapExcelConstants.FILE_NAME, "打卡记录");
+            modelMap.put(NormalExcelConstants.PARAMS, new ExportParams("打卡记录", "打卡记录"));
+            return MapExcelConstants.EASYPOI_MAP_EXCEL_VIEW;
+        }
+}

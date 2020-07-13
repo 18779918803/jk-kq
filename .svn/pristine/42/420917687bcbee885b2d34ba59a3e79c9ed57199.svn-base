@@ -1,0 +1,26 @@
+package com.jk.sw.service;
+
+import com.jk.common.base.IBaseService;
+import com.jk.common.bean.ReturnBean;
+import com.jk.sw.entity.SwTask;
+
+import java.io.Serializable;
+
+
+/**
+ * 任务服务接口层
+ *
+ * @author 温龙飞
+ * @version 1.0
+ * @date 2020年06月07日
+ */
+public interface ISwTaskService extends IBaseService<SwTask> {
+
+    ReturnBean insert(Serializable swid);
+    /**启动*/
+    ReturnBean start(Serializable id);
+    /**停止*/
+    ReturnBean stop(Serializable id);
+
+    String getInstructionsByTaskId(Serializable id);
+}

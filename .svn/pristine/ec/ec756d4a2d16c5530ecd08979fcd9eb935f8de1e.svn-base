@@ -1,0 +1,380 @@
+package com.jk.sw.controller;
+
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.jk.common.annotation.KrtLog;
+import com.jk.common.base.BaseController;
+import com.jk.common.bean.DataTable;
+import com.jk.common.bean.ReturnBean;
+import com.jk.common.exception.KrtException;
+import com.jk.common.util.ServletUtils;
+import com.jk.common.util.ShiroUtils;
+import com.jk.common.validator.Assert;
+import com.jk.sw.constant.SwConst;
+import com.jk.sw.entity.ReceivingRecords;
+import com.jk.sw.entity.SwProcess;
+import com.jk.sw.entity.SwTask;
+import com.jk.sw.service.IReceivingRecordsService;
+import com.jk.sw.service.ISwProcessService;
+import com.jk.sw.service.ISwTaskService;
+import org.apache.shiro.authz.annotation.RequiresPermissions;
+import org.springframework.stereotype.Controller;
+import org.springframework.util.CollectionUtils;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.beans.factory.annotation.Autowired;
+import java.util.Arrays;
+import java.util.Map;
+import java.util.List;
+import com.alibaba.fastjson.JSON;
+import org.springframework.web.multipart.MultipartFile;
+import cn.afterturn.easypoi.excel.ExcelImportUtil;
+import cn.afterturn.easypoi.excel.entity.ImportParams;
+import java.util.ArrayList;
+import org.springframework.ui.ModelMap;
+import cn.afterturn.easypoi.excel.entity.ExportParams;
+import cn.afterturn.easypoi.excel.entity.params.ExcelExportEntity;
+import cn.afterturn.easypoi.entity.vo.MapExcelConstants;
+import cn.afterturn.easypoi.entity.vo.NormalExcelConstants;
+
+/**
+ * 收文记录控制层
+ *
+ * @author 温龙飞
+ * @version 1.0
+ * @date 2020年06月06日
+ */
+@Controller
+public class ReceivingRecordsController extends BaseController {
+
+    @Autowired
+    private IReceivingRecordsService receivingRecordsService;
+    @Autowired
+    private ISwTaskService swTaskService;
+    @Autowired
+    private ISwProcessService swProcessService;
+
+    /**
+     * 收文记录管理页
+     *
+     * @return {@link String}
+     */
+    @RequiresPermissions("sw:receivingRecords:list")
+    @GetMapping("sw/receivingRecords/list")
+    public String list() {
+        return "sw/receivingRecords/list";
+    }
+
+    /**
+     * 收文审批列表页
+     *
+     * @return {@link String}
+     */
+    @RequiresPermissions("sw:receivingRecords:instructionList")
+    @GetMapping("sw/receivingRecords/instructionList")
+    public String instructionList() {
+        return "sw/receivingRecords/instructionList";
+    }
+
+    /**
+     * 收文审批列表
+     *
+     * @return {@link DataTable}
+     */
+    @RequiresPermissions("sw:receivingRecords:instructionList")
+    @PostMapping("sw/receivingRecords/instructionList")
+    @ResponseBody
+    public DataTable instructionList(@RequestParam Map para) {
+        IPage iPage = receivingRecordsService.selectUsableList(SwConst.UsableScope.getValue("读写"), ShiroUtils.getSessionUser().getId(),para);
+        return DataTable.ok(iPage);
+    }
+
+    /**
+     * 收文查阅列表页
+     *
+     * @return {@link String}
+     */
+    @RequiresPermissions("sw:receivingRecords:seeList")
+    @GetMapping("sw/receivingRecords/seeList")
+    public String seeList() {
+        return "sw/receivingRecords/seeList";
+    }
+
+    /**
+     * 收文查阅列表页
+     *
+     * @return {@link String}
+     */
+    @RequiresPermissions("sw:receivingRecords:seeList")
+    @GetMapping("sw/receivingRecords/see")
+    public String see(Integer id) {
+        ReceivingRecords rr = receivingRecordsService.selectById(id);
+        if (rr.getEditable()==SwConst.IsOrNot.getValue("否").intValue()){
+            request.setAttribute("url", rr.getAttachment());
+        }else {
+            request.setAttribute("text", rr.getText());
+        }
+        request.setAttribute("propose", rr.getPropose());
+        request.setAttribute("editable", rr.getEditable());
+        request.setAttribute("swid", id);
+        return "sw/receivingRecords/showAttachment";
+    }
+
+    /**
+     * 收文查阅列表
+     *
+     * @return {@link DataTable}
+     */
+    @RequiresPermissions("sw:receivingRecords:seeList")
+    @PostMapping("sw/receivingRecords/seeList")
+    @ResponseBody
+    public DataTable seeList(@RequestParam Map para) {
+        IPage iPage = receivingRecordsService.selectUsableList(SwConst.UsableScope.getValue("只读"), ShiroUtils.getSessionUser().getId(),para);
+        return DataTable.ok(iPage);
+    }
+
+    /**
+     * 收文审批页
+     *
+     * @return {@link String}
+     */
+    @RequiresPermissions("sw:swProcess:instruction")
+    @GetMapping("sw/receivingRecords/instructionPage")
+    public String instructionPage(Integer id) {
+        ReceivingRecords rr = receivingRecordsService.selectById(id);
+        if (rr.getEditable()==SwConst.IsOrNot.getValue("否").intValue()){
+            request.setAttribute("url", rr.getAttachment());
+        }else {
+            request.setAttribute("text", rr.getText());
+        }
+        request.setAttribute("propose", rr.getPropose());
+        request.setAttribute("editable", rr.getEditable());
+        request.setAttribute("swid", id);
+        return "sw/receivingRecords/instruction";
+    }
+
+    /**
+     * 收文审批页数据
+     *
+     * @return {@link String}
+     */
+    @RequiresPermissions("sw:swProcess:instruction")
+    @PostMapping("sw/receivingRecords/instructionPageData")
+    @ResponseBody
+    public ReturnBean instructionPageData(Integer id) {
+        return receivingRecordsService.instructionPage(id);
+    }
+
+    /**
+     * 保存更新文本
+     *
+     * @return {@link String}
+     */
+    @RequiresPermissions("sw:swProcess:instruction")
+    @PostMapping("sw/receivingRecords/saveText")
+    @ResponseBody
+    public ReturnBean saveText(ReceivingRecords rr) {
+        return receivingRecordsService.saveText(rr);
+    }
+
+    /**
+     * 收文记录管理
+     *
+     * @param para 搜索参数
+     * @return {@link DataTable}
+     */
+    @RequiresPermissions("sw:receivingRecords:list")
+    @PostMapping("sw/receivingRecords/list")
+    @ResponseBody
+    public DataTable list(@RequestParam Map para) {
+        IPage page = receivingRecordsService.selectPageList(para);
+        return DataTable.ok(page);
+    }
+
+    /**
+     * 查看收文文件页面
+     *
+     * @return {@link String}
+     */
+    @RequiresPermissions("sw:receivingRecords:see")
+    @GetMapping("sw/receivingRecords/showAttachment")
+    public String showAttachment(Integer id) {
+        ReceivingRecords rr = receivingRecordsService.selectById(id);
+        if (rr.getEditable()==SwConst.IsOrNot.getValue("否").intValue()){
+            request.setAttribute("url", rr.getAttachment());
+        }else {
+            request.setAttribute("text", rr.getText());
+        }
+        request.setAttribute("propose", rr.getPropose());
+        request.setAttribute("editable", rr.getEditable());
+        request.setAttribute("swid", id);
+        return "sw/receivingRecords/showAttachment";
+    }
+
+    /**
+     * 通过收文ID获取该收文相关所有领导批示
+     *
+     * @param id 收文ID
+     * @return {@link ReturnBean}
+     */
+    @RequiresPermissions("sw:receivingRecords:list")
+    @PostMapping("sw/receivingRecords/instructionsBySwid")
+    @ResponseBody
+    public ReturnBean instructionsBySwid(Integer id) {
+        return receivingRecordsService.instructionsBySwid(id);
+    }
+
+    /**
+     * 文件归档
+     *
+     * @param id 收文ID
+     * @return {@link ReturnBean}
+     */
+    @RequiresPermissions("sw:receivingRecords:update")
+    @PostMapping("sw/receivingRecords/complete")
+    @ResponseBody
+    public ReturnBean complete(Integer id) {
+        return receivingRecordsService.complete(id);
+    }
+
+
+
+    /**
+     * 新增收文记录页
+     *
+     * @return {@link String}
+     */
+    @RequiresPermissions("sw:receivingRecords:insert")
+    @GetMapping("sw/receivingRecords/insert")
+    public String insert() {
+        return "sw/receivingRecords/insert";
+    }
+
+    /**
+     * 添加收文记录
+     *
+     * @param receivingRecords 收文记录
+     * @return {@link ReturnBean}
+     */
+    @KrtLog("添加收文记录")
+    @RequiresPermissions("sw:receivingRecords:insert")
+    @PostMapping("sw/receivingRecords/insert")
+    @ResponseBody
+    public ReturnBean insert(ReceivingRecords receivingRecords) {
+        receivingRecords.setComplete(2);
+        receivingRecordsService.insert(receivingRecords);
+        return ReturnBean.ok();
+    }
+
+    /**
+     * 修改收文记录页
+     *
+     * @param id 收文记录id
+     * @return {@link String}
+     */
+    @RequiresPermissions("sw:receivingRecords:update")
+    @GetMapping("sw/receivingRecords/update")
+    public String update(Integer id) {
+        ReceivingRecords receivingRecords = receivingRecordsService.selectById(id);
+        request.setAttribute("receivingRecords", receivingRecords);
+        return "sw/receivingRecords/update";
+    }
+
+    /**
+     * 修改收文记录
+     *
+     * @param receivingRecords 收文记录
+     * @return {@link ReturnBean}
+     */
+    @KrtLog("修改收文记录")
+    @RequiresPermissions("sw:receivingRecords:update")
+    @PostMapping("sw/receivingRecords/update")
+    @ResponseBody
+    public ReturnBean update(ReceivingRecords receivingRecords) {
+        receivingRecordsService.updateById(receivingRecords);
+        return ReturnBean.ok();
+    }
+
+    /**
+     * 删除收文记录
+     *
+     * @param id 收文记录id
+     * @return {@link ReturnBean}
+     */
+    @KrtLog("删除收文记录")
+    @RequiresPermissions("sw:receivingRecords:delete")
+    //@PostMapping("sw/receivingRecords/delete")
+    @ResponseBody
+    public ReturnBean delete(Integer id) {
+        receivingRecordsService.deleteById(id);
+        return ReturnBean.ok();
+    }
+
+    /**
+     * 批量删除收文记录
+     *
+     * @param ids 收文记录ids
+     * @return {@link ReturnBean}
+     */
+    @KrtLog("批量删除收文记录")
+    @RequiresPermissions("sw:receivingRecords:delete")
+    //@PostMapping("sw/receivingRecords/deleteByIds")
+    @ResponseBody
+    public ReturnBean deleteByIds(Integer[] ids) {
+        receivingRecordsService.deleteByIds(Arrays.asList(ids));
+        return ReturnBean.ok();
+    }
+
+        /**
+        * 导入收文记录
+        *
+        * @param file excel文件
+        * @throws Exception 异常
+        */
+        @KrtLog("导入收文记录")
+        @RequiresPermissions("sw:receivingRecords:excelIn")
+        @PostMapping("sw/receivingRecords/excelIn")
+        public void excelIn(@RequestParam("file") MultipartFile file) throws Exception {
+            Assert.isExcel(file);
+            ImportParams params = new ImportParams();
+            params.setTitleRows(1);
+            params.setHeadRows(1);
+            params.setNeedSave(false);
+            //读取excel
+            List<ReceivingRecords> dataList = ExcelImportUtil.importExcel(file.getInputStream(), ReceivingRecords.class, params);
+            receivingRecordsService.insertBatch(dataList);
+            ServletUtils.printText(response, JSON.toJSONString(ReturnBean.ok()));
+        }
+
+        /**
+        * 导出收文记录
+        *
+        * @param modelMap 返回模型
+        * @param para 参数
+        */
+        @KrtLog("导出收文记录")
+        @RequiresPermissions("sw:receivingRecords:excelOut")
+        @GetMapping("sw/receivingRecords/excelOut")
+        public String excelOut(ModelMap modelMap,Map para) {
+            List<ExcelExportEntity> entityList = new ArrayList<>();
+                entityList.add(new ExcelExportEntity("id", "id", 15));
+                entityList.add(new ExcelExportEntity("来文字号", "receivedSn", 15));
+                entityList.add(new ExcelExportEntity("收文日期", "receivedDate", 15));
+                entityList.add(new ExcelExportEntity("来文单位", "receivedOrg", 15));
+                entityList.add(new ExcelExportEntity("标题", "title", 15));
+                entityList.add(new ExcelExportEntity("密级", "securityClassification", 15));
+                entityList.add(new ExcelExportEntity("重要程度", "importance", 15));
+                entityList.add(new ExcelExportEntity("拟办意见", "propose", 15));
+                entityList.add(new ExcelExportEntity("备注", "remark", 15));
+                entityList.add(new ExcelExportEntity("类别", "category", 15));
+                entityList.add(new ExcelExportEntity("归档", "complete", 15));
+            List dataResult = receivingRecordsService.selectExcelList(para);
+            modelMap.put(MapExcelConstants.ENTITY_LIST, entityList);
+            modelMap.put(MapExcelConstants.MAP_LIST, dataResult);
+            modelMap.put(MapExcelConstants.FILE_NAME, "收文记录");
+            modelMap.put(NormalExcelConstants.PARAMS, new ExportParams("收文记录", "收文记录"));
+            return MapExcelConstants.EASYPOI_MAP_EXCEL_VIEW;
+        }
+}

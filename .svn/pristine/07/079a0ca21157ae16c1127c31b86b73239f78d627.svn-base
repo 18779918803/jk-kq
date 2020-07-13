@@ -1,0 +1,166 @@
+package com.jk.api.controller;
+
+import com.jk.api.dto.DbDTO;
+import com.jk.api.dto.FinishDTO;
+import com.jk.api.enums.TypeEnums;
+import com.jk.api.service.ApiService;
+import com.jk.api.util.SendWeChatUtil;
+import com.jk.common.annotation.KrtIgnoreAuth;
+import com.jk.common.bean.ReturnBean;
+import com.jk.common.bean.ReturnCode;
+import com.jk.common.exception.KqException;
+import com.jk.db.entity.DbApply;
+import com.jk.db.entity.DbDelay;
+import com.jk.db.entity.DbFeedback;
+import com.jk.db.service.IDbApplyService;
+import com.jk.db.service.IDbDelayService;
+import com.jk.db.service.IDbFeedbackService;
+import com.jk.kq.common.GeneralConvertor;
+import com.jk.kq.entity.*;
+import com.jk.kq.entity.vo.LeaveRecordVO;
+import com.jk.kq.entity.vo.WriteoffRecordVo;
+import com.jk.kq.service.ICheckService;
+import com.jk.kq.service.IOpenUserService;
+import com.jk.kq.service.IPositionService;
+import com.jk.sys.entity.User;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.ObjectUtils;
+import org.springframework.web.bind.annotation.*;
+
+import javax.servlet.http.HttpServletRequest;
+import java.util.*;
+
+/**
+ * {{督办小程序审批流程}}
+ *
+ * @author 刘杭
+ * @version 1.0
+ * @date 2020年06月15日
+ */
+@RestController
+@RequestMapping("api/wechat/db")
+@Slf4j
+public class DbApplyCheckApi {
+    @Autowired
+    private IDbApplyService dbApplyService;
+
+    @Autowired
+    private IDbDelayService dbDelayService;
+
+    @Autowired
+    private GeneralConvertor convertor;
+
+    @Autowired
+    private IDbFeedbackService dbFeedbackService;
+
+    @Autowired
+    private ApiService apiService;
+
+
+    /**
+     * 获取所有的审核列表按照日期和搜索条件
+     * @return
+     */
+    @KrtIgnoreAuth
+    @GetMapping("record/list")
+    public ReturnBean applicationList(HttpServletRequest request, DbDTO dto) throws KqException {
+        User openUser = apiService.getOpenUser(request);
+        if (ObjectUtils.isEmpty(dto.getTypePId())){
+            return ReturnBean.error(
+                    ReturnCode.INVALID_REQUEST.getCode(),"typeId为空"
+            );
+        }
+        Map map = new HashMap();
+        //督察督办立项
+        if (TypeEnums.DBAPPLY.getStatus().equals(dto.getTypePId())) {
+            map.put("type", TypeEnums.DBAPPLY.name().toLowerCase());
+            List<DbApply> page = dbApplyService.findTodoTasks(openUser.getUsername(), map);
+            return ReturnBean.ok(page);
+        }else if (TypeEnums.DBDELAY.getStatus().equals(dto.getTypePId())){
+            map.put("type", TypeEnums.DBDELAY.name().toLowerCase());
+            List<DbDelay> dbDelays = dbDelayService.findTodoTasks(openUser.getUsername(), map);
+            return ReturnBean.ok(dbDelays);
+        }else if (TypeEnums.FEEDBACK.getStatus().equals(dto.getTypePId())){
+            map.put("type", TypeEnums.FEEDBACK.name().toLowerCase());
+            List<DbFeedback> dbFeedbacks = dbFeedbackService.findTodoTasks(openUser.getUsername(), map);
+            return ReturnBean.ok(dbFeedbacks);
+        }
+        return ReturnBean.ok();
+
+    }
+
+    /**
+     * 获取单个记录的审批流程记录
+     * @param pid 类型id typeenums
+     * @param id 业务主键
+     * @return
+     */
+    @KrtIgnoreAuth
+    @GetMapping("check/detail")
+    public ReturnBean list(Integer pid, Integer id) {
+        if (ObjectUtils.isEmpty(pid)){
+            return ReturnBean.error(ReturnCode.INVALID_REQUEST);
+        }
+        if (ObjectUtils.isEmpty(id)){
+            return ReturnBean.error(ReturnCode.INVALID_REQUEST);
+        }
+//        LeaveRecordVO leaveRecordVO = checkService.getcurrentRecordDetail(pid, id);
+//        return ReturnBean.ok(leaveRecordVO);
+        return ReturnBean.ok();
+    }
+
+
+    /**
+     * 通过申请，也要推送用户，如果审批结束，推送给申请人，审批未结束，推送给下一个审批人
+     *
+     * @return
+     */
+    @KrtIgnoreAuth
+    @PostMapping("record/pass")
+    public ReturnBean pass(HttpServletRequest request, @RequestBody Map map) throws KqException {
+        User openUser = apiService.getOpenUser(request);
+        Integer pid = (Integer) map.get("pid");
+        Integer id = (Integer) map.get("id");
+        if (ObjectUtils.isEmpty(map.get("id"))) {
+            log.error("id为空");
+            return ReturnBean.error(ReturnCode.INVALID_REQUEST);
+        }
+        if (ObjectUtils.isEmpty(map.get("pid"))) {
+            log.error("pid为空");
+            return ReturnBean.error(ReturnCode.INVALID_REQUEST);
+        }
+        if (TypeEnums.DBAPPLY.getStatus().equals(pid)){
+            dbApplyService.approval(id,openUser,request);
+        }else if (TypeEnums.DBDELAY.getStatus().equals(pid)){
+            dbDelayService.approval(id,openUser,request);
+        }else if (TypeEnums.FEEDBACK.getStatus().equals(pid)){
+            dbFeedbackService.approval(id,openUser,request);
+        }
+        //修改申请记录上的state字段，维护申请状态，推送消息
+//        doPassOrReject(pid, id, state, openUser);
+        //添加一条审核记录
+//        checkService.addCheckProcess(pid, id, openUser.getId(), state, new Date());
+        return ReturnBean.ok();
+    }
+
+    /**
+     * 拒绝申请，也要推送用户，申请拒绝，直接结束审批流程，推送消息给申请人
+     *
+     * @return
+     */
+    @KrtIgnoreAuth
+    @PostMapping("record/reject")
+    public ReturnBean reject(HttpServletRequest request, @RequestBody Map map) throws KqException {
+        User openUser = apiService.getOpenUser(request);
+//        Position position = positionService.selectById(openUser.getPositionId());
+//        Integer state = position.getGrade() * -1;
+        Integer pid = (Integer) map.get("pid");
+        Integer id = (Integer) map.get("id");
+        //修改申请记录上的state字段，维护申请状态，推送消息
+//        doPassOrReject(pid, id, state, openUser);
+        //添加一条审核记录
+//        checkService.addCheckProcess(pid, id, openUser.getId(), state, new Date());
+        return ReturnBean.ok();
+    }
+}

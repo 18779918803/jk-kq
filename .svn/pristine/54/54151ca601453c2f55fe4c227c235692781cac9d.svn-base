@@ -1,0 +1,135 @@
+package com.jk.api.controller;
+
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.jk.api.service.ApiService;
+import com.jk.api.service.SwService;
+import com.jk.common.annotation.KrtIgnoreAuth;
+import com.jk.common.bean.DataTable;
+import com.jk.common.bean.ReturnBean;
+import com.jk.common.util.ShiroUtils;
+import com.jk.common.util.StringUtils;
+import com.jk.common.validator.ValidatorUtils;
+import com.jk.kq.entity.OpenUser;
+import com.jk.sw.constant.SwConst;
+import com.jk.sw.entity.ReceivingRecords;
+import com.jk.sw.entity.dto.InstructionDTO;
+import com.jk.sw.mapper.ReceivingRecordsMapper;
+import com.jk.sw.service.IReceivingRecordsService;
+import com.jk.sys.entity.User;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.ObjectUtils;
+import org.springframework.web.bind.annotation.*;
+
+import javax.servlet.http.HttpServletRequest;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.temporal.TemporalAdjusters;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * 文件描述：
+ *
+ * @Author 温龙飞
+ * @Date 2020/06/30
+ * @Version 1.0
+ */
+
+@RestController
+@RequestMapping("api/wechat/sw")
+@Slf4j
+public class SwController {
+
+    @Autowired
+    private IReceivingRecordsService receivingRecordsService;
+    @Autowired
+    private ReceivingRecordsMapper receivingRecordsMapper;
+    @Autowired
+    private ApiService apiService;
+    @Autowired
+    private SwService swService;
+
+    /**
+     * 查找待审批文件列表
+     * @param para
+     * @return
+     */
+    @KrtIgnoreAuth
+    @GetMapping("instruction/list")
+    public DataTable instructionList(HttpServletRequest request, @RequestParam Map para)   {
+        IPage page = swService.selectUsableList(SwConst.UsableScope.getValue("读写"),
+                apiService.getOpenUser(request).getUserId(), para);
+        return DataTable.ok(page);
+    }
+
+    /**
+     * 查找某条待审批文件信息
+     * @param id
+     * @return
+     */
+    @KrtIgnoreAuth
+    @GetMapping("instruction/info")
+    public ReturnBean instructionInfo(HttpServletRequest request, @RequestParam Integer id)   {
+        OpenUser openUser = apiService.getOpenUser(request);
+
+//        if (ObjectUtils.nullSafeEquals(openUser.getRole(), "普通员工")){
+//            return ReturnBean.error("没有查看权限。");
+//        }
+        return swService.instructionPage(openUser.getUserId(), id);
+    }
+
+    /**
+     * 查找某条待审批文件信息
+     * @return
+     */
+    @KrtIgnoreAuth
+    @PostMapping("instruction")
+    public ReturnBean instruction(@RequestBody InstructionDTO dto ){
+        if (StringUtils.isBlank(dto.getContent())){
+            if (ObjectUtils.nullSafeEquals(dto.getStatus(), SwConst.ApprovalStatus.getValue("同意"))){
+                dto.setContent("同意。");
+            }
+            if (ObjectUtils.nullSafeEquals(dto.getStatus(), SwConst.ApprovalStatus.getValue("驳回"))){
+                dto.setContent("驳回。");
+            }
+        }
+        ValidatorUtils.validateEntity(dto);
+        return swService.instruction(dto);
+    }
+
+    /**
+     * 收文文件列表
+     * @return
+     */
+    @KrtIgnoreAuth
+    @GetMapping("seeList")
+    public DataTable seeList(HttpServletRequest request, @RequestParam Map para ){
+        OpenUser openUser = apiService.getOpenUser(request);
+        IPage iPage = swService.selectUsableList(SwConst.UsableScope.getValue("只读"),
+                openUser.getUserId(), para);
+        return DataTable.ok(iPage);
+    }
+
+    /**
+     * 查看收文详细信息
+     * @return
+     */
+    @KrtIgnoreAuth
+    @GetMapping("seeInfo")
+    public ReturnBean seeInfo(HttpServletRequest request, @RequestParam Integer id){
+        return swService.seeInfoPage(id);
+    }
+
+    /**
+     * 字典接口
+     * @return
+     */
+    @KrtIgnoreAuth
+    @GetMapping("dicList")
+    public ReturnBean getDicList(@RequestParam String type){
+        return ReturnBean.ok(swService.getDicList(type));
+    }
+}

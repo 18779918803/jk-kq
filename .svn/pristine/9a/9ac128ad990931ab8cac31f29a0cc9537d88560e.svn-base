@@ -1,0 +1,68 @@
+package com.jk.api.service.impl;
+
+
+import com.jk.api.service.ApiService;
+import com.jk.common.bean.ReturnBean;
+import com.jk.common.bean.ReturnCode;
+import com.jk.common.exception.KrtException;
+import com.jk.kq.common.GeneralConvertor;
+import com.jk.kq.entity.LeaveRecord;
+import com.jk.kq.entity.dto.LeaveRecordDTO;
+import com.jk.kq.service.ILeaveRecordService;
+import com.jk.sys.entity.Organ;
+import com.jk.sys.entity.User;
+import com.jk.sys.service.IOrganService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.HashMap;
+import java.util.Map;
+
+@Service
+public class LeaveRecordService {
+
+    @Autowired
+    private ILeaveRecordService recordService;
+
+    @Autowired
+    private GeneralConvertor convertor;
+
+    @Autowired
+    private IOrganService organService;
+
+
+    @Autowired
+    private ApiService apiService;
+
+    @Transactional
+    public Integer addLeave(User user, LeaveRecordDTO dto, Integer id)   {
+
+        int leave = apiService.selectRole(user.getRoles());
+        //判断角色
+        if (leave == 0){
+            throw new KrtException(ReturnBean.error(ReturnCode.INVALID_REQUEST.getCode(),
+                    "发起申请人角色无定义"));
+        }
+        //判断当前用户的角色
+        Map<String,Object> map =new HashMap<>();
+        map.put("leave",leave);
+
+        LeaveRecord convertor = this.convertor.convertor(dto, LeaveRecord.class);
+        map.put("day",convertor.getDay());
+        System.out.println(convertor.getDay());
+        Organ organ = organService.selectById(user.getOrganId());
+        convertor.setUserId(user.getId());
+        convertor.setName(user.getName());
+        convertor.setOrgan(organ.getName());
+        convertor.setOrganId(user.getOrganId());
+        //TODO 修复
+        convertor.setInserter(id);
+        recordService.insert(convertor);
+        recordService.submitApply(convertor,user.getId().toString(),"leave",map);
+        return convertor.getId();
+    }
+//
+
+
+}

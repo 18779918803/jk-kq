@@ -1,0 +1,20 @@
+package com.jk.db.service.impl;
+
+import com.jk.common.base.BaseServiceImpl;
+import org.springframework.stereotype.Service;
+import com.jk.db.entity.DbFeedback;
+import com.jk.db.mapper.DbFeedbackMapper;
+import com.jk.db.service.IDbFeedbackService;
+
+
+/**
+ * 督查督办情况反馈表服务接口实现层
+ *
+ * @author 刘杭
+ * @version 1.0
+ * @date 2020年06月08日
+ */
+@Service
+public class DbFeedbackServiceImpl extends BaseServiceImpl<DbFeedbackMapper, DbFeedback> implements IDbFeedbackService {
+
+}

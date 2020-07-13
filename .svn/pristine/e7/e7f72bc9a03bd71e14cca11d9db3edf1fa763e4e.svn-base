@@ -1,0 +1,157 @@
+package com.jk.kq.controller;
+
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.jk.common.annotation.KrtLog;
+import com.jk.common.base.BaseController;
+import com.jk.common.bean.DataTable;
+import com.jk.common.bean.ReturnBean;
+import com.jk.kq.entity.Position;
+import com.jk.kq.service.IPositionService;
+import org.apache.shiro.authz.annotation.RequiresPermissions;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.beans.factory.annotation.Autowired;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * 职位控制层
+ *
+ * @author 何任鹏
+ * @version 1.0
+ * @date 2020年05月26日
+ */
+@Controller
+public class PositionController extends BaseController {
+
+    @Autowired
+    private IPositionService positionService;
+
+    /**
+     * 职位管理页
+     *
+     * @return {@link String}
+     */
+    @RequiresPermissions("Position:position:list")
+    @GetMapping("kq/position/list")
+    public String list() {
+        return "kq/position/list";
+    }
+
+    /**
+     * 职位管理
+     *
+     * @param para 搜索参数
+     * @return {@link DataTable}
+     */
+    @RequiresPermissions("Position:position:list")
+    @PostMapping("kq/position/list")
+    @ResponseBody
+    public DataTable list(@RequestParam Map para) {
+        IPage page = positionService.selectPageList(para);
+        return DataTable.ok(page);
+    }
+
+    /**
+     * 新增职位页
+     *
+     * @return {@link String}
+     */
+    @RequiresPermissions("Position:position:insert")
+    @GetMapping("kq/position/insert")
+    public String insert() {
+        return "kq/position/insert";
+    }
+
+    /**
+     * 添加职位
+     *
+     * @param position 职位
+     * @return {@link ReturnBean}
+     */
+    @KrtLog("添加职位")
+    @RequiresPermissions("Position:position:insert")
+    @PostMapping("kq/position/insert")
+    @ResponseBody
+    public ReturnBean insert(Position position) {
+        positionService.insert(position);
+        return ReturnBean.ok();
+    }
+
+    /**
+     * 修改职位页
+     *
+     * @param id 职位id
+     * @return {@link String}
+     */
+    @RequiresPermissions("Position:position:update")
+    @GetMapping("kq/position/update")
+    public String update(Integer id) {
+        Position position = positionService.selectById(id);
+        request.setAttribute("position", position);
+        return "kq/position/update";
+    }
+
+    /**
+     * 修改职位
+     *
+     * @param position 职位
+     * @return {@link ReturnBean}
+     */
+    @KrtLog("修改职位")
+    @RequiresPermissions("Position:position:update")
+    @PostMapping("kq/position/update")
+    @ResponseBody
+    public ReturnBean update(Position position) {
+        positionService.updateById(position);
+        return ReturnBean.ok();
+    }
+
+    /**
+     * 删除职位
+     *
+     * @param id 职位id
+     * @return {@link ReturnBean}
+     */
+    @KrtLog("删除职位")
+    @RequiresPermissions("Position:position:delete")
+    @PostMapping("kq/position/delete")
+    @ResponseBody
+    public ReturnBean delete(Integer id) {
+        positionService.deleteById(id);
+        return ReturnBean.ok();
+    }
+
+    /**
+     * 批量删除职位
+     *
+     * @param ids 职位ids
+     * @return {@link ReturnBean}
+     */
+    @KrtLog("批量删除职位")
+    @RequiresPermissions("Position:position:delete")
+    @PostMapping("kq/position/deleteByIds")
+    @ResponseBody
+    public ReturnBean deleteByIds(Integer[] ids) {
+        positionService.deleteByIds(Arrays.asList(ids));
+        return ReturnBean.ok();
+    }
+
+    /**
+     * 职位机构树
+     *
+     * @return {@link ReturnBean}
+     */
+    @PostMapping("kq/position/positionTree")
+    @ResponseBody
+    public ReturnBean organTree() {
+        List list = positionService.selectList();
+        return ReturnBean.ok(list);
+    }
+
+
+}

@@ -1,0 +1,23 @@
+package com.jk.kq.enums;
+
+public enum TypeEnums {
+    //加班类型
+    OVERTIME(1),
+    //请假
+    LEAVE(2),
+    //核销
+    WRITEOFF(3),
+    //出差
+    TRAVEL(4);
+
+
+    private Integer state;
+
+    TypeEnums(Integer state) {
+        this.state = state;
+    }
+
+    public Integer getStatus() {
+        return state;
+    }
+}

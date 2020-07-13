@@ -1,0 +1,97 @@
+package com.jk.sw.constant;
+
+/**
+ * 文件描述：
+ *
+ * @Author 温龙飞
+ * @Date
+ * @Version 1.0
+ */
+public class SwConst {
+    /**收文任务状态*/
+    public enum TaskStatus{
+        COMPLETED(1,"完成"),
+        UNDERWAY(2,"进行中"),
+        REJECT(3,"驳回结束"),
+        UNSTART(4,"未开始");
+
+        private final Integer TaskStatusCode;
+        private final String TaskStatusDesc;
+
+        private TaskStatus(final Integer code,final String desc){
+            this.TaskStatusCode = code;
+            this.TaskStatusDesc = desc;
+        }
+
+        public static String getDesc(Integer value) {
+            TaskStatus[] taskStatusEnums = values();
+            for (TaskStatus taskStatusEnum : taskStatusEnums) {
+                if (taskStatusEnum.code().equals(value)) {
+                    return taskStatusEnum.desc();
+                }
+            }
+            return null;
+        }
+
+        public static Integer getValue(String value) {
+            TaskStatus[] taskStatusEnums = values();
+            for (TaskStatus taskStatusEnum : taskStatusEnums) {
+                if (taskStatusEnum.desc().equals(value)) {
+                    return taskStatusEnum.code();
+                }
+            }
+            return null;
+        }
+
+        public Integer code(){
+            return this.TaskStatusCode;
+        }
+
+        public String desc(){
+            return this.TaskStatusDesc;
+        }
+    }
+
+    /**收文任务状态*/
+    public enum ApprovalStatus{
+        NO_INSTRUCTIONS(1,"未批示"),
+        PASS(2,"同意"),
+        REJECT(3,"驳回");
+
+        private final Integer approvalStatusCode;
+        private final String approvalStatusDesc;
+
+        private ApprovalStatus(final Integer code,final String desc){
+            this.approvalStatusCode = code;
+            this.approvalStatusDesc = desc;
+        }
+
+        public static String getDesc(Integer value) {
+            ApprovalStatus[] approvalStatusEnums = values();
+            for (ApprovalStatus approvalStatusEnum : approvalStatusEnums) {
+                if (approvalStatusEnum.code().equals(value)) {
+                    return approvalStatusEnum.desc();
+                }
+            }
+            return null;
+        }
+
+        public static Integer getValue(String value) {
+            ApprovalStatus[] approvalStatusEnums = values();
+            for (ApprovalStatus approvalStatusEnum : approvalStatusEnums) {
+                if (approvalStatusEnum.desc().equals(value)) {
+                    return approvalStatusEnum.code();
+                }
+            }
+            return null;
+        }
+
+        public Integer code(){
+            return this.approvalStatusCode;
+        }
+
+        public String desc(){
+            return this.approvalStatusDesc;
+        }
+    }
+}

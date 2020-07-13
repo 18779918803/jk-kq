@@ -1,0 +1,58 @@
+package com.jk.kq.entity;
+
+import com.alibaba.fastjson.annotation.JSONField;
+import com.baomidou.mybatisplus.annotation.TableName;
+import com.fasterxml.jackson.annotation.JsonFilter;
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.jk.common.base.BaseEntity;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import java.util.Date;
+import org.springframework.format.annotation.DateTimeFormat;
+
+/**
+ * 打卡记录实体类
+ *
+ * @author 何任鹏
+ * @version 1.0
+ * @date 2020年05月25日
+ */
+@Data
+@NoArgsConstructor
+@EqualsAndHashCode(callSuper = false)
+@TableName("jk_punch_record")
+public class PunchRecord extends BaseEntity {
+
+    /**
+     * 姓名
+     */
+    private Integer openUserId;
+
+    /**
+     * 设备
+     */
+    private Integer deviceId;
+
+    /**
+     * 公司ID/部门ID
+     */
+    private Integer organId;
+
+    /**
+     * 公司/部门
+     */
+    private String organ;
+
+    /**
+     * 打卡时间
+     */
+    @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private Date punchTime;
+
+    /**
+     * 打卡状态
+     */
+    private Integer punchState;
+
+}

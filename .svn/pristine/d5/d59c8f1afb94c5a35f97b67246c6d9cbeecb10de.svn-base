@@ -1,0 +1,161 @@
+package com.jk.kq.controller;
+
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.jk.common.annotation.KrtLog;
+import com.jk.common.base.BaseController;
+import com.jk.common.bean.DataTable;
+import com.jk.common.bean.ReturnBean;
+import com.jk.common.bean.ReturnCode;
+import com.jk.kq.constant.SystemCons;
+import com.jk.kq.entity.JkDeviceAds;
+import com.jk.kq.entity.dto.JkDeviceAdsDTO;
+import com.jk.kq.service.IJkDeviceAdsService;
+import org.apache.shiro.authz.annotation.RequiresPermissions;
+import org.springframework.stereotype.Controller;
+import org.springframework.util.ObjectUtils;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.beans.factory.annotation.Autowired;
+
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.Map;
+
+/**
+ * 广告位控制层
+ *
+ * @author 张威伦
+ * @version 1.0
+ * @date 2020年06月12日
+ */
+@Controller
+public class JkDeviceAdsController extends BaseController {
+
+    @Autowired
+    private IJkDeviceAdsService jkDeviceAdsService;
+
+    /**
+     * 广告位管理页
+     *
+     * @return {@link String}
+     */
+    @RequiresPermissions("JkDeviceAds:jkDeviceAds:list")
+    @GetMapping("kq/jkDeviceAds/list")
+    public String list() {
+        return "kq/jkDeviceAds/list";
+    }
+
+    /**
+     * 广告位管理
+     *
+     * @param para 搜索参数
+     * @return {@link DataTable}
+     */
+    @RequiresPermissions("JkDeviceAds:jkDeviceAds:list")
+    @PostMapping("kq/jkDeviceAds/list")
+    @ResponseBody
+    public DataTable list(@RequestParam Map para) {
+        IPage page = jkDeviceAdsService.selectPageList(para);
+        return DataTable.ok(page);
+    }
+
+    /**
+     * 新增广告位页
+     *
+     * @return {@link String}
+     */
+    @RequiresPermissions("JkDeviceAds:jkDeviceAds:insert")
+    @GetMapping("kq/jkDeviceAds/insert")
+    public String insert() {
+        return "kq/jkDeviceAds/insert";
+    }
+
+    /**
+     * 添加广告位
+     *
+     * @param JkDeviceAdsDTO  广告位
+     * @return {@link ReturnBean}
+     */
+    @KrtLog("添加广告位")
+    @RequiresPermissions("JkDeviceAds:jkDeviceAds:insert")
+    @PostMapping("kq/jkDeviceAds/insert")
+    @ResponseBody
+    public ReturnBean insert(JkDeviceAdsDTO dto) throws IOException {
+        if (ObjectUtils.isEmpty(dto.getImgIndex())){
+            return ReturnBean.error(ReturnCode.ACCESS_TOKEN_ERROR.getCode(),"imgIndex null");
+        }
+
+        if (dto.getImgIndex() > SystemCons.Device.maxImgIndex){
+            return ReturnBean.error(ReturnCode.ACCESS_TOKEN_ERROR.getCode(),"imgIndex 超过最大值");
+        }
+
+        if (ObjectUtils.isEmpty(dto.getImgUrl())){
+            return ReturnBean.error(ReturnCode.ACCESS_TOKEN_ERROR.getCode(),"imgUrl null");
+        }
+
+        return jkDeviceAdsService.insertAndCmd(dto);
+    }
+
+    /**
+     * 修改广告位页
+     *
+     * @param id 广告位id
+     * @return {@link String}
+     */
+    @RequiresPermissions("JkDeviceAds:jkDeviceAds:update")
+    @GetMapping("kq/jkDeviceAds/update")
+    public String update(Integer id) {
+        JkDeviceAds jkDeviceAds = jkDeviceAdsService.selectById(id);
+        request.setAttribute("jkDeviceAds", jkDeviceAds);
+        return "kq/jkDeviceAds/update";
+    }
+
+    /**
+     * 修改广告位
+     *
+     * @param jkDeviceAds 广告位
+     * @return {@link ReturnBean}
+     */
+    @KrtLog("修改广告位")
+    @RequiresPermissions("JkDeviceAds:jkDeviceAds:update")
+    @PostMapping("kq/jkDeviceAds/update")
+    @ResponseBody
+    public ReturnBean update(JkDeviceAds jkDeviceAds) {
+        jkDeviceAdsService.updateById(jkDeviceAds);
+        return ReturnBean.ok();
+    }
+
+    /**
+     * 删除广告位
+     *
+     * @param id 广告位id
+     * @return {@link ReturnBean}
+     */
+    @KrtLog("删除广告位")
+    @RequiresPermissions("JkDeviceAds:jkDeviceAds:delete")
+    @PostMapping("kq/jkDeviceAds/delete")
+    @ResponseBody
+    public ReturnBean delete(Integer id) {
+        jkDeviceAdsService.deleteById(id);
+        return ReturnBean.ok();
+    }
+
+    /**
+     * 批量删除广告位
+     *
+     * @param ids 广告位ids
+     * @return {@link ReturnBean}
+     */
+    @KrtLog("批量删除广告位")
+    @RequiresPermissions("JkDeviceAds:jkDeviceAds:delete")
+    @PostMapping("kq/jkDeviceAds/deleteByIds")
+    @ResponseBody
+    public ReturnBean deleteByIds(Integer[] ids) {
+        jkDeviceAdsService.deleteByIds(Arrays.asList(ids));
+        return ReturnBean.ok();
+    }
+
+
+}

@@ -1,0 +1,60 @@
+package com.jk.kq.service;
+
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.jk.activiti.domain.Leave;
+import com.jk.kq.entity.LeaveRecord;
+import com.jk.common.base.IBaseService;
+import com.jk.kq.entity.OpenUser;
+import com.jk.kq.entity.OvertimeRecord;
+import org.activiti.engine.runtime.ProcessInstance;
+
+import java.time.LocalDate;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+
+
+/**
+ * 请假申请服务接口层
+ *
+ * @author 何任鹏
+ * @version 1.0
+ * @date 2020年06月01日
+ */
+public interface ILeaveRecordService extends IBaseService<LeaveRecord> {
+
+    /**
+     * 通过openUserId查找所有的请假记录
+     *
+     * @param openUserId
+     * @param date
+     * @return
+     */
+    List<LeaveRecord> selectByOpenUserIdAndDate(Integer openUserId, LocalDate date);
+
+    /**
+     * 新增用户请假申请
+     *
+     * @param openUser
+     * @param leaveRecord
+     * @return 返回该申请需要推送的用户的集合
+     */
+    List<OpenUser> insert(OpenUser openUser, LeaveRecord leaveRecord);
+
+    /**
+     * 查找用户可以审核的请假申请
+     *
+     * @param queryMap
+     */
+    List selectToCheck(Map queryMap);
+
+
+    ProcessInstance submitApply(LeaveRecord entity, String applyUserId, String key, Map<String, Object> variables);
+
+
+    List<LeaveRecord> findTodoTasks(String username, Map map);
+
+
+
+    IPage findDoneTasks(Map para, String username);
+}

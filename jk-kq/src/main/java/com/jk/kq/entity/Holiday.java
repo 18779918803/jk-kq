@@ -1,0 +1,46 @@
+package com.jk.kq.entity;
+
+import com.baomidou.mybatisplus.annotation.TableName;
+import com.jk.common.base.BaseEntity;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import java.util.Date;
+import org.springframework.format.annotation.DateTimeFormat;
+
+/**
+ * 法定节假日实体类
+ *
+ * @author 何任鹏
+ * @version 1.0
+ * @date 2020年05月25日
+ */
+@Data
+@NoArgsConstructor
+@EqualsAndHashCode(callSuper = false)
+@TableName("jk_holiday")
+public class Holiday extends BaseEntity {
+
+    /**
+     * 开始日期
+     */
+    @DateTimeFormat(pattern = "yyyy-MM-dd")
+    private Date start;
+
+    /**
+     * 结束日期
+     */
+    @DateTimeFormat(pattern = "yyyy-MM-dd")
+    private Date end;
+
+    /**
+     * 备注
+     */
+    private String remark;
+
+    /**
+     * 1 法定节假日 2 补班日
+     */
+    private int type;
+
+}

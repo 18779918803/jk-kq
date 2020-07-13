@@ -1,0 +1,53 @@
+package com.jk.sw.service.impl;
+
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.jk.common.base.BaseServiceImpl;
+import com.jk.common.bean.ReturnBean;
+import com.jk.common.exception.KrtException;
+import com.jk.sw.constant.SwConst;
+import com.jk.sw.util.SwUtils;
+import org.springframework.stereotype.Service;
+import com.jk.sw.entity.SwTask;
+import com.jk.sw.mapper.SwTaskMapper;
+import com.jk.sw.service.ISwTaskService;
+import org.springframework.util.CollectionUtils;
+
+import java.io.Serializable;
+import java.util.List;
+
+
+/**
+ * 任务服务接口实现层
+ *
+ * @author 温龙飞
+ * @version 1.0
+ * @date 2020年06月07日
+ */
+@Service
+public class SwTaskServiceImpl extends BaseServiceImpl<SwTaskMapper, SwTask> implements ISwTaskService {
+
+    @Override
+    public boolean insert(Serializable swid) {
+        List<SwTask> swid1 = super.selectList(new QueryWrapper<SwTask>().eq("swid", swid));
+        boolean flag = false;
+        if (CollectionUtils.isEmpty(swid1)){
+            flag = true;
+        }else {
+            List<SwTask> swTasks = super.selectList(new QueryWrapper<SwTask>().eq("swid", swid).eq("status", SwConst.TaskStatus.getValue("驳回结束")));
+            if (!CollectionUtils.isEmpty(swTasks)){
+                flag = true;
+            }else {
+                throw new KrtException(ReturnBean.error("该收文已有任务完成或有任务进行中"));
+            }
+        }
+        if (flag){
+            SwTask swTask = new SwTask();
+            swTask.setSwid((int)swid);
+            swTask.setTaskId(SwUtils.generateTaskId());
+            swTask.setStatus(SwConst.TaskStatus.getValue("进行中"));
+            super.insert(swTask);
+            return true;
+        }
+        return false;
+    }
+}

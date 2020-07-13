@@ -1,0 +1,11 @@
+{
+  "hints": [],
+  "groups": [
+    {
+      "sourceType": "com.jk.sw.service.impl.SwTaskServiceImpl",
+      "name": "sw",
+      "type": "com.jk.sw.service.impl.SwTaskServiceImpl"
+    }
+  ],
+  "properties": []
+}

@@ -1,0 +1,20 @@
+package com.jk.sw.service.impl;
+
+import com.jk.common.base.BaseServiceImpl;
+import org.springframework.stereotype.Service;
+import com.jk.sw.entity.ReceivingRecords;
+import com.jk.sw.mapper.ReceivingRecordsMapper;
+import com.jk.sw.service.IReceivingRecordsService;
+
+
+/**
+ * 收文记录服务接口实现层
+ *
+ * @author 温龙飞
+ * @version 1.0
+ * @date 2020年06月06日
+ */
+@Service
+public class ReceivingRecordsServiceImpl extends BaseServiceImpl<ReceivingRecordsMapper, ReceivingRecords> implements IReceivingRecordsService {
+
+}

@@ -1,0 +1,178 @@
+package com.jk.sw.controller;
+
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.jk.common.annotation.KrtLog;
+import com.jk.common.base.BaseController;
+import com.jk.common.bean.DataTable;
+import com.jk.common.bean.ReturnBean;
+import com.jk.sw.entity.ReceivingRecords;
+import com.jk.sw.entity.SwTask;
+import com.jk.sw.service.IReceivingRecordsService;
+import com.jk.sw.service.ISwTaskService;
+import org.apache.shiro.authz.annotation.RequiresPermissions;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.beans.factory.annotation.Autowired;
+import java.util.Arrays;
+import java.util.Map;
+
+/**
+ * 任务控制层
+ *
+ * @author 温龙飞
+ * @version 1.0
+ * @date 2020年06月07日
+ */
+@Controller
+public class SwTaskController extends BaseController {
+
+    @Autowired
+    private ISwTaskService swTaskService;
+    @Autowired
+    private IReceivingRecordsService receivingRecordsService;
+
+    /**
+     * 任务管理页
+     *
+     * @return {@link String}
+     */
+    @RequiresPermissions("sw:swTask:list")
+    @GetMapping("sw/swTask/list")
+    public String list(Integer id) {
+        ReceivingRecords receivingRecords = receivingRecordsService.selectById(id);
+        request.setAttribute("receivingRecords", receivingRecords);
+        return "sw/swTask/list";
+    }
+
+    /**
+     * 任务管理
+     *
+     * @param para 搜索参数
+     * @return {@link DataTable}
+     */
+    @RequiresPermissions("sw:swTask:list")
+    @PostMapping("sw/swTask/list")
+    @ResponseBody
+    public DataTable list(@RequestParam Map para) {
+        IPage page = swTaskService.selectPageList(para);
+        return DataTable.ok(page);
+    }
+
+    /**
+     * 新增任务页
+     *
+     * @return {@link String}
+     */
+    @RequiresPermissions("sw:swTask:insert")
+    @GetMapping("sw/swTask/insert")
+    public String insert() {
+        return "sw/swTask/insert";
+    }
+
+    /**
+     * 添加任务
+     *
+     * @param swid 收文ID
+     * @return {@link ReturnBean}
+     */
+    @KrtLog("添加任务")
+    @RequiresPermissions("sw:swTask:insert")
+    @PostMapping("sw/swTask/insert")
+    @ResponseBody
+    public ReturnBean insert(Integer swid) {
+        swTaskService.insert(swid);
+        return ReturnBean.ok();
+    }
+
+    /**
+     * 查看任务流程
+     *
+     * @return {@link String}
+     */
+    @RequiresPermissions("sw:swTask:insert")
+    @GetMapping("sw/swTask/info")
+    public String info(String taskId, Integer swid) {
+        request.setAttribute("taskId",taskId);
+        request.setAttribute("swid",swid);
+        return "sw/swTask/info";
+    }
+
+    /**
+     * 添加任务
+     *
+     * @param id 任务ID
+     * @return {@link ReturnBean}
+     */
+    @KrtLog("启动任务")
+    @RequiresPermissions("sw:swTask:start")
+    @PostMapping("sw/swTask/start")
+    @ResponseBody
+    public ReturnBean start(Integer id) {
+        swTaskService.start(id);
+        return ReturnBean.ok();
+    }
+
+    /**
+     * 修改任务页
+     *
+     * @param id 任务id
+     * @return {@link String}
+     */
+    @RequiresPermissions("sw:swTask:update")
+    @GetMapping("sw/swTask/update")
+    public String update(Integer id) {
+        SwTask swTask = swTaskService.selectById(id);
+        request.setAttribute("swTask", swTask);
+        return "sw/swTask/update";
+    }
+
+    /**
+     * 修改任务
+     *
+     * @param swTask 任务
+     * @return {@link ReturnBean}
+     */
+    @KrtLog("修改任务")
+    @RequiresPermissions("sw:swTask:update")
+    @PostMapping("sw/swTask/update")
+    @ResponseBody
+    public ReturnBean update(SwTask swTask) {
+        swTaskService.updateById(swTask);
+        return ReturnBean.ok();
+    }
+
+    /**
+     * 删除任务
+     *
+     * @param id 任务id
+     * @return {@link ReturnBean}
+     */
+    @KrtLog("删除任务")
+    @RequiresPermissions("sw:swTask:delete")
+    @PostMapping("sw/swTask/delete")
+    @ResponseBody
+    public ReturnBean delete(Integer id) {
+        swTaskService.deleteById(id);
+        return ReturnBean.ok();
+    }
+
+    /**
+     * 批量删除任务
+     *
+     * @param ids 任务ids
+     * @return {@link ReturnBean}
+     */
+    @KrtLog("批量删除任务")
+    @RequiresPermissions("sw:swTask:delete")
+    @PostMapping("sw/swTask/deleteByIds")
+    @ResponseBody
+    public ReturnBean deleteByIds(Integer[] ids) {
+        swTaskService.deleteByIds(Arrays.asList(ids));
+        return ReturnBean.ok();
+    }
+
+
+}

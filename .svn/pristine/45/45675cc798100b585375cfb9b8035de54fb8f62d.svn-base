@@ -1,0 +1,23 @@
+package com.jk.kq.utils;
+
+import com.baomidou.mybatisplus.core.toolkit.IdWorker;
+
+public class MessageIdUtil {
+
+    /**
+     * 获取messageId
+     * @return id
+     */
+    public static String messageId(){
+        return String.valueOf(System.currentTimeMillis());
+    }
+
+    /**
+     * 获取ccid
+     * @return ccid
+     */
+    public static String ccid(){
+        String ccid = String.valueOf(IdWorker.getId());
+        return ccid.substring(ccid.length() - 8, ccid.length());
+    }
+}

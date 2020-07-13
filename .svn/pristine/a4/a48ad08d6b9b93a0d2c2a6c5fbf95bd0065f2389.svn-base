@@ -1,0 +1,122 @@
+package com.jk.kq.utils;
+
+import com.jk.activiti.domain.HistoricActivity;
+import com.jk.activiti.utils.StringUtils;
+import com.jk.common.bean.PageHelper;
+import com.jk.common.bean.Query;
+import com.jk.sys.entity.User;
+import com.jk.sys.service.IUserService;
+import org.activiti.bpmn.model.Task;
+import org.activiti.engine.HistoryService;
+import org.activiti.engine.ProcessEngine;
+import org.activiti.engine.RuntimeService;
+import org.activiti.engine.TaskService;
+import org.activiti.engine.history.HistoricActivityInstance;
+import org.activiti.engine.history.HistoricActivityInstanceQuery;
+import org.activiti.engine.runtime.ProcessInstance;
+import org.activiti.engine.runtime.ProcessInstanceQuery;
+import org.activiti.engine.task.Comment;
+import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
+import org.springframework.util.ObjectUtils;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+@Service
+public class TaskUtilService {
+
+    @Autowired
+    private ProcessEngine processEngine;
+
+    @Autowired
+    private IUserService userService;
+
+
+
+    /**
+     * 判断是否结束
+     *  key:"isEnd" :是否借宿
+     *  key:"isPass":true 通过
+     * @param instanceId
+     * @return
+     */
+    public Map<String,Integer> isEnd(String instanceId){
+        Map<String,Integer> result = new HashMap<>();
+        RuntimeService runtimeService = processEngine.getRuntimeService();
+        ProcessInstanceQuery createProcessInstanceQuery = runtimeService.createProcessInstanceQuery();
+        ProcessInstanceQuery processInstanceId = createProcessInstanceQuery.processInstanceId(instanceId);
+        ProcessInstance singleResult = processInstanceId.singleResult();
+        List<HistoricActivity> approvalList = getApprovalList(instanceId, null, null);
+        if (singleResult == null){
+            result.put("isEnd",1);
+            if (!ObjectUtils.isEmpty(approvalList)){
+                String comment = approvalList.get(approvalList.size() - 1).getComment();
+                if (comment.contains("同意")){
+                    result.put("isPass",1);
+                }else {
+                    result.put("isPass",0);
+                }
+            }
+        }else {
+            result.put("isEnd",0);
+            result.put("isPass",0);
+        }
+        return  result;
+    }
+
+    /**
+     * 查询审批历史
+     * @param instanceId 实例id
+     * @param assignee 指派人
+     * @param activityName 活动名称
+     * @return
+     */
+    public List<HistoricActivity> getApprovalList(String instanceId,String assignee,String activityName){
+        List<HistoricActivity> activityList = new ArrayList<>();
+        HistoryService historyService = processEngine.getHistoryService();
+        TaskService taskService = processEngine.getTaskService();
+        HistoricActivityInstanceQuery query = historyService.createHistoricActivityInstanceQuery();
+        if (!ObjectUtils.isEmpty(assignee)) {
+            query.taskAssignee(assignee);
+        }
+        if (!ObjectUtils.isEmpty(activityName)) {
+            query.activityName(activityName);
+        }
+        List<HistoricActivityInstance> list = query.processInstanceId(instanceId)
+                .activityType("userTask")
+                .finished()
+                .orderByHistoricActivityInstanceStartTime()
+                .desc()
+                .list();
+        list.forEach(instance -> {
+            HistoricActivity activity = new HistoricActivity();
+            BeanUtils.copyProperties(instance, activity);
+            String taskId = instance.getTaskId();
+            List<Comment> comment = taskService.getTaskComments(taskId, "comment");
+            if (!CollectionUtils.isEmpty(comment)) {
+                activity.setComment(comment.get(0).getFullMessage());
+            }
+            Integer userId = userService.getUserId(instance.getAssignee());
+            User user = userService.selectById(userId);
+            if (user != null) {
+                activity.setAssigneeName(user.getName());
+            }
+            activityList.add(activity);
+        });
+
+//        Query query2 = new Query(map);
+//        com.baomidou.mybatisplus.extension.plugins.pagination.Page page = query2.getPage();
+//        PageHelper.startPage(page);
+//        page.setRecords(activityList);
+        return activityList;
+    }
+
+
+
+
+}

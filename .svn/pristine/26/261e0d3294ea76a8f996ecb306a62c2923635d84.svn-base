@@ -1,0 +1,21 @@
+package com.jk.kq.constant;
+
+import java.math.BigDecimal;
+
+public class CommonConst {
+	
+	/**
+	 * UTF-8格式
+	 */
+	public static final String CHARSET_UTF8 = "UTF-8";
+	/**
+	 * POSt
+	 */
+	public static final String POST = "POST";
+
+	public static final String DEVICE_ID = "Q10193310233";
+
+	public static final Integer OPEN_USER_STATE_PEND = 0;
+
+	public static final Integer OPEN_USER_STATE_PASS = 1;
+}

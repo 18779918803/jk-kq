@@ -1,0 +1,31 @@
+package com.jk.sw.service.impl;
+
+import com.jk.api.util.SendWeChatUtil;
+import com.jk.common.bean.ReturnBean;
+import com.jk.sw.entity.dto.SendGZHMsgDTO;
+import com.jk.sw.service.SendMsgService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+/**
+ * 文件描述：发送消息
+ *
+ * @Author 温龙飞
+ * @Date $ $
+ * @Version 1.0
+ */
+@Service
+public class SendMsgServiceImpl implements SendMsgService {
+
+    @Autowired
+    private SendWeChatUtil sendWeChatUtil;
+
+    @Override
+    public ReturnBean sendToGZH(SendGZHMsgDTO dto) {
+        sendWeChatUtil.sendMessage(dto.getOpenId(), dto.getHead(), dto.getName(),
+                dto.getState(), dto.getMessageText(), dto.getRemarkText(), dto.getRegUser());
+        return ReturnBean.ok();
+    }
+}

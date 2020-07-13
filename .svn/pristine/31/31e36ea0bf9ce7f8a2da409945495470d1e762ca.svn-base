@@ -1,0 +1,193 @@
+package com.jk.kq.controller;
+
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.jk.common.annotation.KrtLog;
+import com.jk.common.base.BaseController;
+import com.jk.common.bean.DataTable;
+import com.jk.common.bean.ReturnBean;
+import com.jk.kq.config.WorkTypeConfig;
+import com.jk.kq.entity.OvertimeRecord;
+import com.jk.kq.entity.WorkType;
+import com.jk.kq.service.IOvertimeRecordService;
+import com.jk.kq.service.IWorkTypeService;
+import org.apache.shiro.authz.annotation.RequiresPermissions;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.beans.factory.annotation.Autowired;
+import java.util.Arrays;
+import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
+import org.springframework.ui.ModelMap;
+import cn.afterturn.easypoi.excel.entity.ExportParams;
+import cn.afterturn.easypoi.excel.entity.params.ExcelExportEntity;
+import cn.afterturn.easypoi.entity.vo.MapExcelConstants;
+import cn.afterturn.easypoi.entity.vo.NormalExcelConstants;
+
+/**
+ * 加班申请控制层
+ *
+ * @author 何任鹏
+ * @version 1.0
+ * @date 2020年06月01日
+ */
+@Controller
+public class OvertimeRecordController extends BaseController {
+
+    @Autowired
+    private IOvertimeRecordService overtimeRecordService;
+
+    @Autowired
+    private IWorkTypeService workTypeService;
+
+
+    /**
+     * 加班申请管理页
+     *
+     * @return {@link String}
+     */
+    @RequiresPermissions("OvertimeRecord:overtimeRecord:list")
+    @GetMapping("kq/overtimeRecord/list")
+    public String list() {
+        List<WorkType> overTimeTypes = workTypeService.selectByPid(WorkTypeConfig.OVERTIME);
+        request.setAttribute("overTimeTypes",overTimeTypes);
+        return "kq/overtimeRecord/list";
+    }
+
+    /**
+     * 加班申请管理
+     *
+     * @param para 搜索参数
+     * @return {@link DataTable}
+     */
+    @RequiresPermissions("OvertimeRecord:overtimeRecord:list")
+    @PostMapping("kq/overtimeRecord/list")
+    @ResponseBody
+    public DataTable list(@RequestParam Map para) {
+        IPage page = overtimeRecordService.selectPageList(para);
+        return DataTable.ok(page);
+    }
+
+    /**
+     * 新增加班申请页
+     *
+     * @return {@link String}
+     */
+    @RequiresPermissions("OvertimeRecord:overtimeRecord:insert")
+    @GetMapping("kq/overtimeRecord/insert")
+    public String insert() {
+        List<WorkType> overTimeTypes = workTypeService.selectByPid(WorkTypeConfig.OVERTIME);
+        request.setAttribute("overTimeTypes",overTimeTypes);
+        return "kq/overtimeRecord/insert";
+    }
+
+    /**
+     * 添加加班申请
+     *
+     * @param overtimeRecord 加班申请
+     * @return {@link ReturnBean}
+     */
+    @KrtLog("添加加班申请")
+    @RequiresPermissions("OvertimeRecord:overtimeRecord:insert")
+    @PostMapping("kq/overtimeRecord/insert")
+    @ResponseBody
+    public ReturnBean insert(OvertimeRecord overtimeRecord) {
+        overtimeRecordService.insert(overtimeRecord);
+        return ReturnBean.ok();
+    }
+
+    /**
+     * 修改加班申请页
+     *
+     * @param id 加班申请id
+     * @return {@link String}
+     */
+    @RequiresPermissions("OvertimeRecord:overtimeRecord:update")
+    @GetMapping("kq/overtimeRecord/update")
+    public String update(Integer id) {
+        OvertimeRecord overtimeRecord = overtimeRecordService.selectById(id);
+        request.setAttribute("overtimeRecord", overtimeRecord);
+        List<WorkType> overTimeTypes = workTypeService.selectByPid(WorkTypeConfig.OVERTIME);
+        request.setAttribute("overTimeTypes",overTimeTypes);
+        return "kq/overtimeRecord/update";
+    }
+
+    /**
+     * 修改加班申请
+     *
+     * @param overtimeRecord 加班申请
+     * @return {@link ReturnBean}
+     */
+    @KrtLog("修改加班申请")
+    @RequiresPermissions("OvertimeRecord:overtimeRecord:update")
+    @PostMapping("kq/overtimeRecord/update")
+    @ResponseBody
+    public ReturnBean update(OvertimeRecord overtimeRecord) {
+        overtimeRecordService.updateById(overtimeRecord);
+        return ReturnBean.ok();
+    }
+
+    /**
+     * 删除加班申请
+     *
+     * @param id 加班申请id
+     * @return {@link ReturnBean}
+     */
+    @KrtLog("删除加班申请")
+    @RequiresPermissions("OvertimeRecord:overtimeRecord:delete")
+    @PostMapping("kq/overtimeRecord/delete")
+    @ResponseBody
+    public ReturnBean delete(Integer id) {
+        overtimeRecordService.deleteById(id);
+        return ReturnBean.ok();
+    }
+
+    /**
+     * 批量删除加班申请
+     *
+     * @param ids 加班申请ids
+     * @return {@link ReturnBean}
+     */
+    @KrtLog("批量删除加班申请")
+    @RequiresPermissions("OvertimeRecord:overtimeRecord:delete")
+    @PostMapping("kq/overtimeRecord/deleteByIds")
+    @ResponseBody
+    public ReturnBean deleteByIds(Integer[] ids) {
+        overtimeRecordService.deleteByIds(Arrays.asList(ids));
+        return ReturnBean.ok();
+    }
+
+
+        /**
+        * 导出加班申请
+        *
+        * @param modelMap 返回模型
+        * @param para 参数
+        */
+        @KrtLog("导出加班申请")
+        @RequiresPermissions("OvertimeRecord:overtimeRecord:excelOut")
+        @GetMapping("kq/overtimeRecord/excelOut")
+        public String excelOut(ModelMap modelMap,Map para) {
+            List<ExcelExportEntity> entityList = new ArrayList<>();
+                entityList.add(new ExcelExportEntity("ID", "id", 15));
+                entityList.add(new ExcelExportEntity("open_user_id", "openUserId", 15));
+                entityList.add(new ExcelExportEntity("姓名", "name", 15));
+                entityList.add(new ExcelExportEntity("公司ID/部门ID", "organId", 15));
+                entityList.add(new ExcelExportEntity("公司/部门", "organ", 15));
+                entityList.add(new ExcelExportEntity("加班日期", "date", 15));
+                entityList.add(new ExcelExportEntity("加班原因", "reason", 15));
+                entityList.add(new ExcelExportEntity("加班天数", "day", 15));
+                entityList.add(new ExcelExportEntity("申请状态", "state", 15));
+                entityList.add(new ExcelExportEntity("加班类型", "typeId", 15));
+                entityList.add(new ExcelExportEntity("申请提交时间", "insertTime", 15));
+            List dataResult = overtimeRecordService.selectExcelList(para);
+            modelMap.put(MapExcelConstants.ENTITY_LIST, entityList);
+            modelMap.put(MapExcelConstants.MAP_LIST, dataResult);
+            modelMap.put(MapExcelConstants.FILE_NAME, "加班申请");
+            modelMap.put(NormalExcelConstants.PARAMS, new ExportParams("加班申请", "加班申请"));
+            return MapExcelConstants.EASYPOI_MAP_EXCEL_VIEW;
+        }
+}

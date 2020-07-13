@@ -1,0 +1,280 @@
+package com.jk.sw.controller;
+
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.graphbuilder.struc.Stack;
+import com.jk.common.annotation.KrtLog;
+import com.jk.common.base.BaseController;
+import com.jk.common.bean.DataTable;
+import com.jk.common.bean.ReturnBean;
+import com.jk.common.exception.KrtException;
+import com.jk.common.util.StringUtils;
+import com.jk.common.validator.ValidatorUtils;
+import com.jk.common.validator.group.InsertGroup;
+import com.jk.kq.service.IOpenUserService;
+import com.jk.sw.constant.SwConst;
+import com.jk.sw.entity.SwProcess;
+import com.jk.sw.entity.SwTask;
+import com.jk.sw.entity.dto.InstructionDTO;
+import com.jk.sw.service.ISwProcessService;
+import com.jk.sw.service.ISwTaskService;
+import org.apache.poi.util.StringUtil;
+import org.apache.shiro.authz.annotation.RequiresPermissions;
+import org.springframework.stereotype.Controller;
+import org.springframework.util.CollectionUtils;
+import org.springframework.util.ObjectUtils;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.beans.factory.annotation.Autowired;
+import java.util.Arrays;
+import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
+import org.springframework.ui.ModelMap;
+import cn.afterturn.easypoi.excel.entity.ExportParams;
+import cn.afterturn.easypoi.excel.entity.params.ExcelExportEntity;
+import cn.afterturn.easypoi.entity.vo.MapExcelConstants;
+import cn.afterturn.easypoi.entity.vo.NormalExcelConstants;
+
+/**
+ * 流程控制层
+ *
+ * @author 温龙飞
+ * @version 1.0
+ * @date 2020年06月11日
+ */
+@Controller
+public class SwProcessController extends BaseController {
+
+    @Autowired
+    private ISwProcessService swProcessService;
+    @Autowired
+    private ISwTaskService swTaskService;
+    @Autowired
+    private IOpenUserService openUserService;
+    /**
+     * 流程管理页
+     *
+     * @return {@link String}
+     */
+    @RequiresPermissions("sw:swProcess:list")
+    @GetMapping("sw/swProcess/list")
+    public String list() {
+        return "sw/swProcess/list";
+    }
+
+    /**
+     * 流程管理
+     *
+     * @param para 搜索参数
+     * @return {@link DataTable}
+     */
+    @RequiresPermissions("sw:swProcess:list")
+    @PostMapping("sw/swProcess/list")
+    @ResponseBody
+    public DataTable list(@RequestParam Map para) {
+        IPage page = swProcessService.selectPageList(para);
+        return DataTable.ok(page);
+    }
+
+    /**
+     * 新增流程页
+     *
+     * @return {@link String}
+     */
+    @RequiresPermissions("sw:swProcess:insert")
+    @GetMapping("sw/swProcess/insert")
+    public String insert() {
+        return "sw/swProcess/insert";
+    }
+
+    /**
+     * 添加流程
+     *
+     * @param swProcess 流程
+     * @return {@link ReturnBean}
+     */
+    @KrtLog("添加流程")
+    @RequiresPermissions("sw:swProcess:insert")
+    @PostMapping("sw/swProcess/insert")
+    @ResponseBody
+    public ReturnBean insert(SwProcess swProcess) {
+        ValidatorUtils.validateEntity(swProcess, InsertGroup.class);
+        SwTask task = swTaskService.selectById(swProcess.getTaskId());
+        if (task.getStatus() == SwConst.TaskStatus.getValue("进行中").intValue()
+                || task.getStatus() == SwConst.TaskStatus.getValue("完成").intValue()
+                || task.getStatus() == SwConst.TaskStatus.getValue("驳回结束").intValue()){
+            return ReturnBean.error("任务进行中或已结束，不能修改流程");
+        }
+        swProcess.setStatus(SwConst.ApprovalStatus.getValue("未批示"));
+        swProcessService.insert(swProcess);
+        return ReturnBean.ok();
+    }
+
+    /**
+     * 选择审批人页
+     *
+     * @return {@link String}
+     */
+    @RequiresPermissions("sw:swProcess:update")
+    @PostMapping("sw/swProcess/approver")
+    @ResponseBody
+    public DataTable processApproverList(@RequestParam Map para) {
+        IPage page = swProcessService.processApproverList(para);
+        return DataTable.ok(page);
+    }
+
+    /**
+     * 审批
+     *
+     * @return {@link ReturnBean}
+     */
+    @KrtLog("审批")
+    @RequiresPermissions("sw:swProcess:instruction")
+    @PostMapping("sw/swProcess/instruction")
+    @ResponseBody
+    public ReturnBean instruction(InstructionDTO dto) {
+        if (StringUtils.isBlank(dto.getContent())){
+            dto.setContent("同意。");
+        }
+        ValidatorUtils.validateEntity(dto);
+        return swProcessService.instruction(dto);
+    }
+
+    /**
+     * 撤销审批
+     *
+     * @return {@link ReturnBean}
+     */
+    @KrtLog("撤销审批")
+    @RequiresPermissions("sw:swProcess:revoke")
+    @PostMapping("sw/swProcess/revoke")
+    @ResponseBody
+    public ReturnBean revoke(Integer id) {
+        if (id==null){
+            throw new KrtException(ReturnBean.error("任务ID不能为空"));
+        }
+        swProcessService.revoke(id);
+        return ReturnBean.ok();
+    }
+
+    /**
+     * 修改流程页
+     *
+     * @param id 流程id
+     * @return {@link String}
+     */
+    @RequiresPermissions("sw:swProcess:update")
+    @GetMapping("sw/swProcess/update")
+    public String update(Integer id) {
+        SwProcess swProcess = swProcessService.selectById(id);
+        request.setAttribute("swProcess", swProcess);
+        return "sw/swProcess/update";
+    }
+
+    /**
+     * 修改流程
+     *
+     * @param swProcess 流程
+     * @return {@link ReturnBean}
+     */
+    @KrtLog("修改流程")
+    @RequiresPermissions("sw:swProcess:update")
+    @PostMapping("sw/swProcess/update")
+    @ResponseBody
+    public ReturnBean update(SwProcess swProcess) {
+        //ValidatorUtils.validateEntity(swProcess, UpdateGroup.class);
+        SwProcess process = swProcessService.selectById(swProcess.getId());
+        if (ObjectUtils.isEmpty(process)){
+            return ReturnBean.error("流程不存在");
+        }
+        SwTask task = swTaskService.selectById(process.getTaskId());
+        if (task.getStatus() == SwConst.TaskStatus.getValue("进行中").intValue()
+                || task.getStatus() == SwConst.TaskStatus.getValue("完成").intValue()
+                || task.getStatus() == SwConst.TaskStatus.getValue("驳回结束").intValue()){
+            return ReturnBean.error("任务进行中或已结束，不能修改流程");
+        }
+        swProcessService.updateById(swProcess);
+        return ReturnBean.ok();
+    }
+
+    /**
+     * 删除流程
+     *
+     * @param id 流程id
+     * @return {@link ReturnBean}
+     */
+    @KrtLog("删除流程")
+    @RequiresPermissions("sw:swProcess:delete")
+    @PostMapping("sw/swProcess/delete")
+    @ResponseBody
+    public ReturnBean delete(Integer id) {
+        SwProcess swProcess = swProcessService.selectById(id);
+        if (ObjectUtils.isEmpty(swProcess)){
+            return ReturnBean.error("流程不存在");
+        }
+        SwTask task = swTaskService.selectById(swProcess.getTaskId());
+        if (task.getStatus() == SwConst.TaskStatus.getValue("进行中").intValue()
+            || task.getStatus() == SwConst.TaskStatus.getValue("完成").intValue()
+            || task.getStatus() == SwConst.TaskStatus.getValue("驳回结束").intValue()){
+            return ReturnBean.error("任务进行中或已结束，不能修改流程");
+        }
+        swProcessService.deleteById(id);
+        return ReturnBean.ok();
+    }
+
+    /**
+     * 批量删除流程
+     *
+     * @param ids 流程ids
+     * @return {@link ReturnBean}
+     */
+    @KrtLog("批量删除流程")
+    @RequiresPermissions("sw:swProcess:delete")
+    @PostMapping("sw/swProcess/deleteByIds")
+    @ResponseBody
+    public ReturnBean deleteByIds(Integer[] ids) {
+        SwProcess swProcess = swProcessService.selectById(ids[0]);
+        if (ObjectUtils.isEmpty(swProcess)){
+            return ReturnBean.error("流程不存在");
+        }
+        SwTask task = swTaskService.selectById(swProcess.getTaskId());
+        if (task.getStatus() == SwConst.TaskStatus.getValue("进行中").intValue()
+                || task.getStatus() == SwConst.TaskStatus.getValue("完成").intValue()
+                || task.getStatus() == SwConst.TaskStatus.getValue("驳回结束").intValue()){
+            return ReturnBean.error("任务进行中或已结束，不能修改流程");
+        }
+        swProcessService.deleteByIds(Arrays.asList(ids));
+        return ReturnBean.ok();
+    }
+
+
+        /**
+        * 导出流程
+        *
+        * @param modelMap 返回模型
+        * @param para 参数
+        */
+        @KrtLog("导出流程")
+        @RequiresPermissions("sw:swProcess:excelOut")
+        @GetMapping("sw/swProcess/excelOut")
+        public String excelOut(ModelMap modelMap,Map para) {
+            List<ExcelExportEntity> entityList = new ArrayList<>();
+                entityList.add(new ExcelExportEntity("id", "id", 15));
+                entityList.add(new ExcelExportEntity("收文ID", "swid", 15));
+                entityList.add(new ExcelExportEntity("任务实例ID", "taskId", 15));
+                entityList.add(new ExcelExportEntity("审批人ID", "approver", 15));
+                entityList.add(new ExcelExportEntity("顺序", "sort", 15));
+                entityList.add(new ExcelExportEntity("审批状态", "status", 15));
+                entityList.add(new ExcelExportEntity("审批人姓名", "username", 15));
+                entityList.add(new ExcelExportEntity("批示", "content", 15));
+            List dataResult = swProcessService.selectExcelList(para);
+            modelMap.put(MapExcelConstants.ENTITY_LIST, entityList);
+            modelMap.put(MapExcelConstants.MAP_LIST, dataResult);
+            modelMap.put(MapExcelConstants.FILE_NAME, "流程");
+            modelMap.put(NormalExcelConstants.PARAMS, new ExportParams("流程", "流程"));
+            return MapExcelConstants.EASYPOI_MAP_EXCEL_VIEW;
+        }
+}

@@ -1,0 +1,265 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ChangeListManager">
+    <list default="true" id="787e0851-b73c-46ee-9148-79c6aefea79e" name="Default Changelist" comment="">
+      <change beforePath="$PROJECT_DIR$/jk-common/src/main/java/com/jk/common/datascope/DataScope.java" beforeDir="false" afterPath="$PROJECT_DIR$/jk-common/src/main/java/com/jk/common/datascope/DataScope.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/jk-web/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/jk-web/pom.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/jk-web/src/main/resources/application-dev.yml" beforeDir="false" afterPath="$PROJECT_DIR$/jk-web/src/main/resources/application-dev.yml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/jk-web/src/main/resources/application.yml" beforeDir="false" afterPath="$PROJECT_DIR$/jk-web/src/main/resources/application.yml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/jk-web/src/main/resources/static/dist/js/list.js" beforeDir="false" afterPath="$PROJECT_DIR$/jk-web/src/main/resources/static/dist/js/list.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/jk-xcx/jk-xcx.iml" beforeDir="false" afterPath="$PROJECT_DIR$/jk-xcx/jk-xcx.iml" afterDir="false" />
+    </list>
+    <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="DatabaseView">
+    <option name="SHOW_INTERMEDIATE" value="true" />
+    <option name="GROUP_DATA_SOURCES" value="true" />
+    <option name="GROUP_SCHEMA" value="true" />
+    <option name="GROUP_CONTENTS" value="false" />
+    <option name="SORT_POSITIONED" value="false" />
+    <option name="SHOW_EMPTY_GROUPS" value="false" />
+    <option name="AUTO_SCROLL_FROM_SOURCE" value="false" />
+    <option name="HIDDEN_KINDS">
+      <set />
+    </option>
+    <expand />
+    <select />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Class" />
+      </list>
+    </option>
+  </component>
+  <component name="Git.Settings">
+    <option name="ROOT_SYNC" value="DONT_SYNC" />
+  </component>
+  <component name="MavenImportPreferences">
+    <option name="generalSettings">
+      <MavenGeneralSettings>
+        <option name="localRepository" value="D:\maven\repository" />
+        <option name="mavenHome" value="D:/maven/apache-maven-3.6.0" />
+        <option name="userSettingsFile" value="D:\maven\apache-maven-3.6.0\conf\settings.xml" />
+      </MavenGeneralSettings>
+    </option>
+    <option name="importingSettings">
+      <MavenImportingSettings>
+        <option name="importAutomatically" value="true" />
+        <option name="vmOptionsForImporter" value="-Xmx768m" />
+      </MavenImportingSettings>
+    </option>
+  </component>
+  <component name="MavenRunner">
+    <option name="skipTests" value="true" />
+  </component>
+  <component name="ProjectId" id="1dAI36F8BOUTHOzhfDsLlyiEs9P" />
+  <component name="PropertiesComponent">
+    <property name="DatabaseDriversLRU" value="mysql" />
+    <property name="RequestMappingsPanelOrder0" value="0" />
+    <property name="RequestMappingsPanelOrder1" value="1" />
+    <property name="RequestMappingsPanelWidth0" value="75" />
+    <property name="RequestMappingsPanelWidth1" value="75" />
+    <property name="WebServerToolWindowFactoryState" value="false" />
+    <property name="aspect.path.notification.shown" value="true" />
+    <property name="last_directory_selection" value="$PROJECT_DIR$/jk-db/src/main/java/com/jk/db" />
+    <property name="last_opened_file_path" value="D:/jk-jcgl/jk-gcgl" />
+    <property name="node.js.detected.package.eslint" value="true" />
+    <property name="node.js.detected.package.tslint" value="true" />
+    <property name="node.js.path.for.package.eslint" value="project" />
+    <property name="node.js.path.for.package.tslint" value="project" />
+    <property name="node.js.selected.package.eslint" value="(autodetect)" />
+    <property name="node.js.selected.package.tslint" value="(autodetect)" />
+    <property name="project.structure.last.edited" value="Modules" />
+    <property name="project.structure.proportion" value="0.0" />
+    <property name="project.structure.side.proportion" value="0.0" />
+    <property name="settings.editor.selected.configurable" value="settings.github" />
+  </component>
+  <component name="RecentsManager">
+    <key name="OPEN_URL_DIALOG">
+      <recent name="https://github.com/ZhongQiYY/-jk-gcgl.git" />
+    </key>
+    <key name="CopyClassDialog.RECENTS_KEY">
+      <recent name="com.jk.db.listener" />
+    </key>
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="D:\IdeaProject\jk-kq\jk-db\src\main\java\com\jk\db\utils" />
+      <recent name="D:\IdeaProject\jk-kq\jk-db\src\main\java\com\jk\db\service\impl" />
+      <recent name="D:\IdeaProject\jk-kq\jk-db\src\main\resources\templates\db" />
+      <recent name="D:\IdeaProject\jk-kq\jk-db\src\main\java\com\jk\db\service" />
+      <recent name="D:\IdeaProject\jk-kq\jk-db\src\main\resources\mapper" />
+    </key>
+  </component>
+  <component name="RunDashboard">
+    <option name="ruleStates">
+      <list>
+        <RuleState>
+          <option name="name" value="ConfigurationTypeDashboardGroupingRule" />
+        </RuleState>
+        <RuleState>
+          <option name="name" value="StatusDashboardGroupingRule" />
+        </RuleState>
+      </list>
+    </option>
+  </component>
+  <component name="RunManager">
+    <configuration name="Application" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot" temporary="true" nameIsGenerated="true">
+      <module name="jk-web" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="com.jk.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <option name="SPRING_BOOT_MAIN_CLASS" value="com.jk.Application" />
+      <option name="ALTERNATIVE_JRE_PATH" />
+      <option name="UPDATE_ACTION_UPDATE_POLICY" value="UpdateClassesAndResources" />
+      <option name="FRAME_DEACTIVATION_UPDATE_POLICY" value="UpdateClassesAndResources" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Spring Boot.Application" />
+      </list>
+    </recent_temporary>
+  </component>
+  <component name="SvnConfiguration" cleanupOnStartRun="true">
+    <configuration>C:\Users\81488\AppData\Roaming\Subversion</configuration>
+    <supportedVersion>125</supportedVersion>
+  </component>
+  <component name="SvnFileUrlMappingImpl">
+    <option name="myMappingRoots">
+      <list>
+        <SvnCopyRootSimple>
+          <option name="myVcsRoot" value="D:\IdeaProject\jk-kq" />
+          <option name="myCopyRoot" value="D:\IdeaProject\jk-kq" />
+        </SvnCopyRootSimple>
+      </list>
+    </option>
+    <option name="myMoreRealMappingRoots">
+      <list>
+        <SvnCopyRootSimple>
+          <option name="myVcsRoot" value="D:\IdeaProject\jk-kq" />
+          <option name="myCopyRoot" value="D:\IdeaProject\jk-kq" />
+        </SvnCopyRootSimple>
+      </list>
+    </option>
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="787e0851-b73c-46ee-9148-79c6aefea79e" name="Default Changelist" comment="" />
+      <created>1591861268615</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1591861268615</updated>
+      <workItem from="1591861272438" duration="79000" />
+      <workItem from="1591861391873" duration="218000" />
+      <workItem from="1591861849035" duration="795000" />
+      <workItem from="1591862685509" duration="662000" />
+      <workItem from="1591863883373" duration="3878000" />
+      <workItem from="1591933499465" duration="6966000" />
+      <workItem from="1591967545242" duration="647000" />
+      <workItem from="1592029341240" duration="20000" />
+      <workItem from="1592180859129" duration="22580000" />
+      <workItem from="1592266463335" duration="1420000" />
+      <workItem from="1592267910302" duration="15639000" />
+      <workItem from="1592357854448" duration="16520000" />
+      <workItem from="1592438797675" duration="11814000" />
+      <workItem from="1592451923027" duration="6654000" />
+      <workItem from="1592469249611" duration="1178000" />
+      <workItem from="1592525556119" duration="8032000" />
+      <workItem from="1592548880796" duration="7908000" />
+      <workItem from="1592704814137" duration="22943000" />
+      <workItem from="1592784406293" duration="48466000" />
+      <workItem from="1593054354279" duration="780000" />
+      <workItem from="1593132272118" duration="2764000" />
+      <workItem from="1593179902726" duration="16018000" />
+      <workItem from="1593302684104" duration="49386000" />
+      <workItem from="1593564090788" duration="10853000" />
+      <workItem from="1593649000530" duration="12723000" />
+      <workItem from="1593736020195" duration="14807000" />
+      <workItem from="1593995731956" duration="9241000" />
+      <workItem from="1594035138364" duration="198000" />
+      <workItem from="1594085285476" duration="77000" />
+      <workItem from="1594528764081" duration="473000" />
+      <workItem from="1594599430723" duration="3459000" />
+    </task>
+    <task id="LOCAL-00001">
+      <created>1592822316503</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1592822316503</updated>
+    </task>
+    <task id="LOCAL-00002">
+      <created>1593302928276</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1593302928276</updated>
+    </task>
+    <task id="LOCAL-00003">
+      <created>1593327075725</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1593327075725</updated>
+    </task>
+    <task id="LOCAL-00004">
+      <created>1593332037050</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1593332037050</updated>
+    </task>
+    <task id="LOCAL-00005">
+      <created>1593568747427</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1593568747427</updated>
+    </task>
+    <task id="LOCAL-00006">
+      <created>1593674643513</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1593674643513</updated>
+    </task>
+    <task id="LOCAL-00007">
+      <created>1593677132049</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1593677132049</updated>
+    </task>
+    <task id="LOCAL-00008">
+      <created>1593681064223</created>
+      <option name="number" value="00008" />
+      <option name="presentableId" value="LOCAL-00008" />
+      <option name="project" value="LOCAL" />
+      <updated>1593681064223</updated>
+    </task>
+    <task id="LOCAL-00009">
+      <created>1594023997430</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1594023997431</updated>
+    </task>
+    <option name="localTasksCounter" value="10" />
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="1" />
+  </component>
+  <component name="VcsManagerConfiguration">
+    <option name="LAST_COMMIT_MESSAGE" value="" />
+  </component>
+</project>

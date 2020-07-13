@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jk.sys.mapper.DeviceCmdMapper">
+
+    <!--<select id="selectByOpenUserId" resultType="com.jk.kq.entity.DeviceCmd">-->
+        <!--select * from jk_device_cmd where open_user_id = #{openUserId}-->
+    <!--</select>-->
+
+    <!--<select id="selectForUpdate" resultType="com.jk.mqtt.server.entity.UserCard">-->
+        <!--select * from jk_user_card where open_user_id = #{openUserId} for update-->
+    <!--</select>-->
+
+    <!--<select id="selectByNumberForUpdate" resultType="com.jk.mqtt.server.entity.UserCard">-->
+        <!--select *,open_user_id as openUserId from jk_user_card where state = 1 and number = #{number} for update-->
+    <!--</select>-->
+
+    <select id="selectQueueCmd" resultType="com.jk.sys.entity.DeviceCmd">
+        select *
+        from jk_device_cmd
+        where sn = #{sn}
+        and status = 0
+        order by create_time asc
+        limit 10
+    </select>
+
+    <insert id="insert" parameterType="com.jk.sys.entity.DeviceCmd">
+        insert into jk_device_cmd(sn, status, msg_id, command, result, create_time)
+        value (#{sn}, #{status}, #{msgId}, #{command}, #{result}, #{createTime})
+    </insert>
+
+    <!--<update id="updateById">-->
+        <!--update jk_user_card-->
+        <!--set amount = #{amount}, update_time = now()-->
+        <!--where id = #{id}-->
+    <!--</update>-->
+
+    <update id="updateStatusOk">
+        update jk_device_cmd set status = 1 where msg_id = #{msgId}
+    </update>
+
+</mapper>
+

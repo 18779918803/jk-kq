@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jk.sw.mapper.ReceivingRecordsMapper">
+
+    <sql id="Base_Column_List">
+        id,received_sn,received_date,received_org,title,security_classification,importance,propose,remark,category,complete,inserter,insert_time,updater,update_time
+    </sql>
+
+    <!-- 带参数查询收文记录列表 -->
+    <select id="selectPageList" resultType="com.jk.sw.entity.ReceivingRecords">
+        select
+            <include refid="Base_Column_List"/>
+        from sw_receiving_records where 1=1
+            <if test="receivedSn !=null and receivedSn!=''">
+                        and received_sn = #{receivedSn}
+            </if>
+            <if test="startDate !=null and startDate !='' and endDate!=null and endDate!=''">
+                        and received_date BETWEEN #{startDate} AND #{endDate}
+            </if>
+            <if test="receivedOrg !=null and receivedOrg!=''">
+                        and received_org = #{receivedOrg}
+            </if>
+            <if test="securityClassification !=null and securityClassification!=''">
+                        and security_classification = #{securityClassification}
+            </if>
+            <if test="importance !=null and importance!=''">
+                        and importance = #{importance}
+            </if>
+            <if test="category !=null and category!=''">
+                        and category = #{category}
+            </if>
+            <if test="complete !=null and complete!=''">
+                        and complete = #{complete}
+            </if>
+    </select>
+
+        <!-- 导出数据 -->
+        <select id="selectExcelList" resultType="java.util.Map">
+            select
+            id,received_sn,received_date,received_org,title,security_classification,importance,propose,remark,category,complete,'1'
+            from sw_receiving_records
+        </select>
+</mapper>
+

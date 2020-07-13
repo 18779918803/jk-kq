@@ -1,0 +1,175 @@
+package com.jk.api.controller;
+
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
+import com.jk.api.service.ApiService;
+import com.jk.common.annotation.KrtIgnoreAuth;
+import com.jk.common.base.BaseController;
+import com.jk.common.bean.DataTable;
+import com.jk.common.bean.ReturnBean;
+import com.jk.kq.common.GeneralConvertor;
+import com.jk.common.util.DateUtils;
+import com.jk.kq.entity.Holiday;
+import com.jk.kq.entity.OpenUser;
+import com.jk.kq.service.IHolidayService;
+import com.jk.kq.service.IClockService;
+import com.jk.sys.entity.User;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.*;
+
+/**
+ * 和考勤小程序日历相关的API接口
+ *
+ * @author 缪隽峰
+ * @version 1.0
+ * @date 2020年05月21日
+ */
+@Slf4j
+@Controller
+@RestController
+@RequestMapping("api/calendar")
+public class CalendarController extends BaseController {
+
+    @Autowired
+    private IHolidayService holidayService;
+
+    @Autowired
+    private IClockService clockService;
+
+    @Autowired
+    private ApiService apiService;
+
+    @Autowired
+    private GeneralConvertor convertor;
+
+    /**
+     * 微信小程序获取所有的法定节假日信息
+     * @return
+     */
+    @KrtIgnoreAuth
+    @PostMapping("holiday")
+    public ReturnBean holiday(@RequestParam("date") String date) {
+        JSONObject retval = new JSONObject();
+        JSONArray retvalHoliday = new JSONArray();
+        JSONArray retvalOvertime = new JSONArray();
+        List<Holiday> holidays = holidayService.selectHoliday(date);
+        for( Holiday holiday : holidays ){
+            Date start = holiday.getStart();
+            while (!start.after(holiday.getEnd())) {
+                if( holiday.getType() == 1 ) {
+                    retvalHoliday.add(DateUtils.dateToString("yyyy-MM-dd", start));
+                }else if( holiday.getType() == 2 ){
+                    retvalOvertime.add(DateUtils.dateToString("yyyy-MM-dd", start));
+                }
+                start = DateUtils.dateAdd("day", 1, start);
+            }
+        }
+        retval.put("holiday", retvalHoliday);
+        retval.put("overtime", retvalOvertime);
+        return ReturnBean.ok(retval);
+    }
+
+    /**
+     * 通过OpenUserId和当前日期，获取当前日期该用户的打卡记录
+     *
+     * @param date
+     * @return
+     */
+    @KrtIgnoreAuth
+    @PostMapping("clock")
+    public ReturnBean clock(@RequestParam("date") String date)   {
+        OpenUser openUser = apiService.getOpenUser(request);
+        List clocks = clockService.selectClock(openUser.getId(), date);
+        for (int i=0; i<clocks.size(); i++) {
+            Map clock = (Map) clocks.get(i);
+            Integer way = (Integer)clock.get("way");
+            switch (way){
+                case 1:
+                    clock.put("way", "指纹打卡");
+                    break;
+                case 2:
+                    clock.put("way", "核销打卡");
+                    break;
+            }
+            Integer type = (Integer)clock.get("type");
+            switch (type){
+                case 1:
+                    clock.put("type", "上班卡");
+                    break;
+                case 2:
+                    clock.put("type", "下班卡");
+                    break;
+            }
+            Integer state = (Integer)clock.get("state");
+            switch (state){
+                case 0:
+                    clock.put("state", "正常");
+                    break;
+                case 1:
+                    clock.put("state", "迟到");
+                    break;
+                case 2:
+                    clock.put("state", "旷工");
+                    break;
+                case 3:
+                    clock.put("state", "早退");
+                    break;
+                case 4:
+                    clock.put("state", "加班");
+                    break;
+            }
+        }
+        return ReturnBean.ok(clocks);
+    }
+
+    /**
+     * 日历状态信息
+     * @param date 搜索日期
+     * @return {@link DataTable}
+     */
+    @KrtIgnoreAuth
+    @PostMapping("status")
+    public ReturnBean status(@RequestParam("date") String date)   {
+        OpenUser openUser = apiService.getOpenUser(request);
+        List clocks = clockService.selectStatus(openUser.getId(), date);
+
+        for (int i=0; i<clocks.size(); i++) {
+            Map clock = (Map)clocks.get(i);
+            Integer state = (Integer)clock.get("state");
+
+//            if (ReportEnums.QUIT.name().toLowerCase().equals(type)){
+//                record.setType(ReportEnums.QUIT.getStatus());
+//            }else if (ReportEnums.LATE.name().toLowerCase().equals(type)){
+//                record.setType(ReportEnums.LATE.getStatus());
+//            } else if (ReportEnums.EARLY_QUIT.name().toLowerCase().equals(type)){
+//                record.setType(ReportEnums.EARLY_QUIT.getStatus());
+//            }else if (ReportEnums.NORMAL.name().toLowerCase().equals(type)){
+//                record.setType(ReportEnums.NORMAL.getStatus());
+//            }
+            if( state == 0 ){
+                clock.put("color", "yellow");
+            }else if( state == 1 ){
+                clock.put("color", "red");
+            }else if( state == 2 ){
+                clock.put("color", "red");
+            }else if( state == 3 ){
+                clock.put("color", "red");
+            }else if( state == 4 ){
+                clock.put("color", "blue");
+            }
+        }
+//        List<StatisReportVO> convertor = this.convertor.convertor(records, StatisReportVO.class);
+//
+//        convertor = convertor.stream().collect(
+//                Collectors.collectingAndThen(
+//                        Collectors.toCollection(() -> new TreeSet<StatisReportVO>(
+//                                Comparator.comparing(StatisReportVO::getType))),
+//                        ArrayList::new));
+
+        return ReturnBean.ok(clocks);
+    }
+}

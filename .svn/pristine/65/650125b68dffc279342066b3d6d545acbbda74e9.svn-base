@@ -1,0 +1,112 @@
+package com.jk.api.controller;
+
+import com.jk.api.service.ApiService;
+import com.jk.api.util.SendWeChatUtil;
+import com.jk.common.annotation.KrtIgnoreAuth;
+import com.jk.common.bean.ReturnBean;
+import com.jk.kq.config.WorkTypeConfig;
+import com.jk.kq.entity.OpenUser;
+import com.jk.kq.entity.OvertimeRecord;
+import com.jk.kq.entity.WorkType;
+import com.jk.kq.service.IOpenUserService;
+import com.jk.kq.service.IOvertimeRecordService;
+import com.jk.kq.service.IWorkTypeService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.util.ObjectUtils;
+import org.springframework.web.bind.annotation.*;
+
+import javax.servlet.http.HttpServletRequest;
+import java.util.Date;
+import java.util.List;
+
+/**
+ * 加班记录微信小程序API接口
+ *
+ * @author 何任鹏
+ * @version 1.0
+ * @date 2020年06月01日
+ */
+@RestController
+@RequestMapping("api/wechat/kq")
+public class OvertimeRecordApi {
+
+    @Autowired
+    private IOvertimeRecordService overtimeRecordService;
+
+    @Autowired
+    private ApiService apiService;
+
+    @Autowired
+    private IWorkTypeService workTypeService;
+
+    @Autowired
+    private IOpenUserService openUserService;
+
+    @Autowired
+    private SendWeChatUtil sendWeChatUtil;
+
+    /**
+     * 查找所有的加班记录，可以通过月份查找
+     *
+     * @param request
+     * @param date
+     * @return
+     */
+    @KrtIgnoreAuth
+    @GetMapping("overtime/list")
+    public ReturnBean list(HttpServletRequest request, @DateTimeFormat(pattern = "yyyy-MM-dd") Date date) {
+        OpenUser openUser = apiService.getOpenUser(request);
+        List<OvertimeRecord> overtimeRecords = overtimeRecordService.selectByOpenUserIdAndDate(openUser.getId(), date);
+        return ReturnBean.ok(overtimeRecords);
+    }
+
+    /**
+     * 查找所有的加班记录类型
+     *
+     * @return
+     */
+    @KrtIgnoreAuth
+    @GetMapping("overtime/type")
+    public ReturnBean types() {
+        List<WorkType> overtimeTypes = workTypeService.selectByPid(WorkTypeConfig.OVERTIME);
+        return ReturnBean.ok(overtimeTypes);
+    }
+
+    /**
+     * 新增用户加班申请
+     *
+     * 当用户新增加班申请的时候，应该推送模板消息给领导
+     *
+     * @return
+     */
+    @KrtIgnoreAuth
+    @PostMapping("overtime/insert")
+    public ReturnBean insert(HttpServletRequest request,@RequestBody OvertimeRecord overtimeRecord) {
+        OpenUser openUser = apiService.getOpenUser(request);
+        List<OpenUser> checkList = overtimeRecordService.insert(openUser, overtimeRecord);
+        //只有推送用户不为空的时候，才会进行推送，其他情况默认不推送
+        if(checkList != null){
+            List<String> gzhOpenIds = openUserService.getGzhOpenIds(checkList);
+            if(!ObjectUtils.isEmpty(gzhOpenIds)) {
+                for (String gzhOpenId : gzhOpenIds) {
+                    //多重保险，不为空的时候才进行推送
+                    if(gzhOpenId != null && !"".equals(gzhOpenId)) {
+                    sendWeChatUtil.sendMessage(gzhOpenId,"您好，您有一个员工申请待审批!",
+                            "加班申请", "待审批", overtimeRecord.getReason(),
+                            "点击查看详情", "页面跳转路径（项目上线后填入路径）");
+
+                    }
+                }
+            }
+        }
+        //测试->直接将加班申请记录推送给张威伦
+        //o_9hBw1IGoCJkFtFolzZuuXaLvN4张威伦的微信公众号的openid
+//        sendWeChatUtil.sendMessage("o_9hBw1IGoCJkFtFolzZuuXaLvN4","您好，您有一个员工申请待审批!",
+//                "加班申请", "待审批", overtimeRecord.getReason(),
+//                "点击查看详情", "页面跳转路径（项目上线后填入路径）");
+        return ReturnBean.ok();
+    }
+
+
+}

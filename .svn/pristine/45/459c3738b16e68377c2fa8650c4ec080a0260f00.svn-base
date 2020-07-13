@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <artifactId>jk</artifactId>
+        <groupId>com.jk</groupId>
+        <version>3.1.4</version>
+    </parent>
+
+    <artifactId>jk-web</artifactId>
+    <name>jk-web</name>
+    <url>http://www.xizinet.com</url>
+    <description>项目web启动器</description>
+
+    <dependencies>
+        <!-- #############开发环境依赖##############   -->
+        <dependency>
+            <groupId>com.jk</groupId>
+            <artifactId>jk-sw</artifactId>
+            <version>3.1.4</version>
+        </dependency>
+        <!--测试依赖-->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.jk</groupId>
+            <artifactId>jk-kq</artifactId>
+            <version>3.1.4</version>
+        </dependency>
+        <!-- 代码生成器 -->
+        <dependency>
+            <groupId>com.jk</groupId>
+            <artifactId>jk-gen</artifactId>
+            <version>3.1.4</version>
+        </dependency>
+        <!--  #############正式环境依赖##############   -->
+        <!-- 核心框架 -->
+        <dependency>
+            <groupId>com.jk</groupId>
+            <artifactId>jk-framework</artifactId>
+            <version>3.1.4</version>
+        </dependency>
+        <!-- 系统管理 -->
+        <dependency>
+            <groupId>com.jk</groupId>
+            <artifactId>jk-sys</artifactId>
+            <version>3.1.4</version>
+        </dependency>
+        <!-- 验证码 -->
+        <dependency>
+            <groupId>com.jk</groupId>
+            <artifactId>jk-plugin-captcha</artifactId>
+            <version>3.1.4</version>
+        </dependency>
+        <!-- 接口api -->
+        <dependency>
+            <groupId>com.jk</groupId>
+            <artifactId>jk-api</artifactId>
+            <version>3.1.4</version>
+        </dependency>
+        <!-- 文件管理 -->
+<!--        <dependency>-->
+<!--            <groupId>com.jk</groupId>-->
+<!--            <artifactId>jk-plugin-file</artifactId>-->
+<!--            <version>3.1.4</version>-->
+<!--        </dependency>-->
+        <!-- 定时器 -->
+        <dependency>
+            <groupId>com.jk</groupId>
+            <artifactId>jk-plugin-quartz</artifactId>
+            <version>3.1.4</version>
+        </dependency>
+    </dependencies>
+
+
+
+
+    <build>
+        <finalName>jk-kq</finalName>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>

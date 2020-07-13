@@ -1,0 +1,19 @@
+package com.jk.api.constant;
+
+/**
+ * 常量类，将一些常量定义在这个类中，方便使用
+ *
+ * @author 缪隽峰
+ * @version 1.0
+ * @date 2020年03月27日
+ */
+public class ApiConst {
+
+    /**
+     * 第三方Session的属性名
+     */
+    public static final String THIRD_SESSION = "thirdSession";
+
+
+
+}

@@ -1,0 +1,20 @@
+package com.jk.kq.service.impl;
+
+import com.jk.common.base.BaseServiceImpl;
+import org.springframework.stereotype.Service;
+import com.jk.kq.entity.StatisReport;
+import com.jk.kq.mapper.StatisReportMapper;
+import com.jk.kq.service.IStatisReportService;
+
+
+/**
+ * 个人维度报告服务接口实现层
+ *
+ * @author zhangwl
+ * @version 1.0
+ * @date 2020年06月18日
+ */
+@Service
+public class StatisReportServiceImpl extends BaseServiceImpl<StatisReportMapper, StatisReport> implements IStatisReportService {
+
+}

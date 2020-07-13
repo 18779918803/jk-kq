@@ -1,0 +1,182 @@
+package com.jk.kq.service.impl;
+
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
+import com.jk.common.bean.ReturnBean;
+import com.jk.common.bean.ReturnCode;
+import com.jk.kq.entity.DeviceCmd;
+import com.jk.kq.entity.OpenUser;
+import com.jk.kq.entity.dto.DeptDTO;
+import com.jk.kq.entity.dto.DeviceUserDTO;
+import com.jk.kq.feignClient.KqClient;
+import com.jk.kq.service.DeviceCmdService;
+import com.jk.kq.service.DeviceService;
+import com.jk.kq.service.IOpenUserService;
+import com.jk.kq.utils.MessageIdUtil;
+import com.sun.org.apache.regexp.internal.RE;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+import org.springframework.util.ObjectUtils;
+
+import java.util.Date;
+
+/**
+ * {{文件描述}}
+ *
+ * @author 缪隽峰
+ * @version 1.0
+ * @date 2020年05月20日
+ */
+@Service
+public class DeviceServiceImpl implements DeviceService {
+
+    @Autowired
+    private DeviceCmdService deviceCmdService;
+
+
+    @Autowired
+    private IOpenUserService openUserService;
+
+    @Autowired
+    private KqClient client;
+
+
+    /**
+     * 更新部门信息
+     *
+     * @param sn   设备序列号
+     * @param id   部门ID
+     * @param pid  部门父ID
+     * @param name 部门名称
+     */
+    @Override
+    public ReturnBean updateDept(String sn, String id, String pid, String name) {
+
+        DeptDTO build = DeptDTO.builder().sn(sn).id(id).pid(pid).name(name).build();
+
+        ReturnBean returnBean = client.updateDept(build);
+        return checkResp(returnBean);
+    }
+
+    /**
+     * 上传设备信息
+     *
+     * @param sn
+     */
+    @Override
+    public void uploadInfo(String sn) {
+        JSONObject data = new JSONObject();
+        String messageId = MessageIdUtil.messageId();
+        data.put("id", String.valueOf(messageId));
+        data.put("do", "upload");
+        data.put("data", "info");
+        queueCmd(sn, messageId, data);
+    }
+
+    /**
+     * 删除用户信息
+     *
+     * @param sn
+     * @param ccid
+     */
+    @Override
+    public void deleteUser(String sn, String ccid) {
+        JSONObject data = new JSONObject();
+        String messageId = MessageIdUtil.messageId();
+        data.put("id", String.valueOf(messageId));
+        data.put("do", "delete");
+        JSONArray d = new JSONArray();
+        d.add("user");
+        d.add("fingerprint");
+        d.add("face");
+        d.add("headpic");
+        d.add("clockin");
+        d.add("pic");
+        data.put("data", d);
+        JSONArray id = new JSONArray();
+        id.add(ccid);
+        data.put("ccid", id);
+        queueCmd(sn, messageId, data);
+    }
+
+    /**
+     * 删除部门信息
+     *
+     * @param sn
+     * @param deptid
+     */
+    @Override
+    public ReturnBean deleteDept(String sn, String deptid) {
+        DeptDTO build = DeptDTO.builder().sn(sn).id(deptid).build();
+        ReturnBean returnBean = client.deleteDept(build);
+        return checkResp(returnBean);
+    }
+
+    private ReturnBean checkResp(ReturnBean bean){
+        if (!ObjectUtils.isEmpty(bean) && bean.getCode() == ReturnCode.OK.getCode()){
+            return bean;
+        }else {
+            return ReturnBean.error(ReturnCode.ERROR);
+        }
+    }
+
+    @Override
+    public JSONObject updateConfig(String sn) {
+        JSONObject data = new JSONObject();
+        data.put("id", "0");
+        data.put("do", "update");
+        data.put("data", "config");
+        data.put("name", "建控大堂");
+        data.put("company", "赣州建控集团");
+        data.put("companyid", 1);
+        data.put("max", 3000);
+        data.put("function", 65532);
+        data.put("delay", 20);
+        data.put("errdelay", 30);
+        data.put("timezone", "GMT+08:00");
+        data.put("encrypt", 0);
+        data.put("expired", "2015-12-1012:10:10");
+        return data;
+    }
+
+
+    @Override
+    public ReturnBean updateUser(OpenUser user) {
+        OpenUser dbUser = openUserService.selectById(user.getId());
+        DeviceUserDTO dto = DeviceUserDTO.builder().sn("Q10193310233").card("123456")
+                .ccid(dbUser.getId().toString()).name(dbUser.getName())
+                .deptid(dbUser.getOrganId().toString()).build();
+        ReturnBean cloud = client.updateUser(dto);
+        if (ObjectUtils.isEmpty(cloud)){
+            return ReturnBean.error(ReturnCode.SERVER_ERROR);
+        }
+        return cloud;
+    }
+
+    @Override
+    public void updateImg(String sn, int index, String base64Img) {
+        JSONObject data = new JSONObject();
+        String messageId = MessageIdUtil.messageId();
+        data.put("id", String.valueOf(messageId));
+        data.put("do", "update");
+        data.put("data", "advert");
+        data.put("index", index);
+        data.put("advert", base64Img);
+        queueCmd(sn, messageId, data);
+    }
+
+    private void queueCmd(String sn, String messageId, JSONObject data) {
+        DeviceCmd deviceCmd = new DeviceCmd();
+        deviceCmd.setSn(sn);
+        deviceCmd.setMsgId(messageId);
+        deviceCmd.setStatus(0);
+        deviceCmd.setCommand(data.toString());
+        deviceCmd.setCreateTime(new Date());
+        deviceCmdService.insert(deviceCmd);
+    }
+
+
+
+
+}

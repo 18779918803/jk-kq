@@ -1,0 +1,107 @@
+package com.jk;
+
+import com.alibaba.fastjson.JSONObject;
+import com.baomidou.mybatisplus.core.toolkit.IdWorker;
+import com.jk.api.util.HttpUtil;
+import com.jk.api.util.SendWeChatUtil;
+import com.jk.kq.entity.OpenUser;
+//import com.jk.common.feignClient.KqClient;
+import com.jk.kq.service.IOpenUserService;
+import com.jk.kq.service.IWriteoffRecordService;
+import com.jk.kq.service.impl.ReportServiceImpl;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.junit4.SpringRunner;
+
+import java.io.UnsupportedEncodingException;
+import java.time.LocalDateTime;
+
+/**
+ * 测试类
+ * @author 何任鹏
+ * @version 1.0
+ * @date 2020年06月11日
+ */
+@SpringBootTest
+@RunWith(SpringRunner.class)
+public class OpenUserTest {
+
+    @Autowired
+    private IOpenUserService openUserService;
+
+//    @Autowired
+//    private KqClient client;
+
+    @Autowired
+    private SendWeChatUtil util;
+
+    @Autowired
+    private IWriteoffRecordService recordService;
+
+
+    @Autowired
+    private ReportServiceImpl reportService;
+
+    @Autowired
+    private SendWeChatUtil sendWeChatUtil;
+
+    @Test
+    public void punch(){
+        //查找当天已经审核的核销列表
+        //再更新打卡表
+//        recordService.selectToCheck()
+         OpenUser openUser = new OpenUser();
+
+        openUser.setState(0);
+        openUser.setSessionKey("sessionKey");
+        openUser.setThirdSession("thirdSession");
+        openUserService.insert(openUser);
+
+        //查找当天已经审核通过的加班列表
+        //求出上班打卡时间和下班打卡时间
+        //如果是晚上加班，计算时间：2到5小时  为0.5天
+        //如果是周末加班，计算时间：17：30减去08：30 >5 为一天  2~5 为0.5天 然后打卡下班时间减去 17：30 2~5 为0.5天
+        //如果是法定
+    }
+
+    @Test
+    public void test01() throws UnsupportedEncodingException {
+        String APP_ID = "wx72cc2c4c6937ea1d";
+        String APP_SECRET = "0878f6485a07198a80a7f35317c61a33";
+        String url = "https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid="
+                + APP_ID + "&secret=" + APP_SECRET;
+        String json = HttpUtil.get(url);
+        JSONObject jsonObject = JSONObject.parseObject(json);
+        String accessToken = null;
+        if (jsonObject.containsKey("access_token")) {
+            accessToken = (String) jsonObject.get("access_token");
+        }
+        sendWeChatUtil.sendMessageTest("o_9hBwwFG5oD7FgKnvgX9g2ldAOY","您好，您有一个员工申请待审批!",
+                "加班申请", "待审批", "ssss",
+                "点击查看详情", "页面跳转路径（项目上线后填入路径）",accessToken);
+        reportService.report();
+//        sendWeChatUtil.getGZHOpenUserId();
+    }
+
+
+    public static void main(String[] args) {
+//        for (int i = 0; i < 100; i++) {
+//            long id = IdWorker.getId();
+//           System.out.println(id);
+//            String s = String.valueOf(id);
+//            String substring = s.substring(s.length() - 8, s.length());
+//            System.out.println(substring);
+//        }
+        long id = IdWorker.getId();
+        System.out.println(id);
+
+
+        LocalDateTime localDateTime = LocalDateTime.now().plusDays(-1);
+        System.out.println(localDateTime);
+
+    }
+
+
+}

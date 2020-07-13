@@ -1,0 +1,79 @@
+package com.jk.kq.utils;
+
+import javax.xml.crypto.Data;
+import java.time.*;
+import java.time.temporal.TemporalAdjusters;
+import java.util.Date;
+
+public class DateUtils {
+
+    /**
+     * 获取30分
+     * @param number
+     * @return
+     */
+    public static Date getDay(int hour,int min) {
+        Date date = new Date();
+        date.setDate(date.getDate());
+        date.setHours(hour);
+        date.setMinutes(min);
+        date.setSeconds(0);
+        return date;
+    }
+
+    /**
+     * LocalDate转Date
+     * @param localDate
+     * @return
+     */
+    public static Date localDate2Date(LocalDate localDate) {
+        if (null == localDate) {
+            return null;
+        }
+        ZonedDateTime zonedDateTime = localDate.atStartOfDay(ZoneId.systemDefault());
+        return Date.from(zonedDateTime.toInstant());
+
+    }
+
+
+    /**
+     * 返回第一天
+     */
+    public static LocalDateTime firstday(LocalDateTime date){
+        LocalDateTime firstday = LocalDateTime.of(date.getYear(),date.getMonth(),1,0,0,0);
+        return firstday;
+    }
+
+    public static LocalDateTime firstday(LocalDate date){
+        LocalDateTime firstday = LocalDateTime.of(date.getYear(),date.getMonth(),1,0,0,0);
+        return firstday;
+    }
+
+    public static LocalDateTime firstday(Date input){
+        Instant instant = input.toInstant();
+        ZoneId zone = ZoneId.systemDefault();
+        LocalDateTime date = LocalDateTime.ofInstant(instant, zone);
+        LocalDateTime firstday = LocalDateTime.of(date.getYear(),date.getMonth(),1,0,0,0);
+        return firstday;
+    }
+
+
+    public static LocalDateTime    lastDay(LocalDateTime date){
+        LocalDateTime lastDay = date.with(TemporalAdjusters.lastDayOfMonth());
+        return lastDay;
+    }
+
+    public static LocalDate    lastDay(LocalDate date){
+        LocalDate lastDay = date.with(TemporalAdjusters.lastDayOfMonth());
+        return lastDay;
+    }
+
+    public static LocalDate    lastDay(Date input){
+        Instant instant = input.toInstant();
+        ZoneId zone = ZoneId.systemDefault();
+        LocalDateTime date = LocalDateTime.ofInstant(instant, zone);
+        LocalDate localDate = date.toLocalDate();
+        LocalDate lastDay = localDate.with(TemporalAdjusters.lastDayOfMonth());
+        return lastDay;
+    }
+}

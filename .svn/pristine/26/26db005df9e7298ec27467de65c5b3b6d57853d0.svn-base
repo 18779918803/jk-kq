@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jk.db.mapper.DbFeedbackMapper">
+
+    <sql id="Base_Column_List">
+        id,db_type,db_id,db_source,db_content_brief,db_ask_finaltime,db_level,lead_department,responsibility_department,total_time,final_evidence,department_principal,charge_lead,manager_advice,president_advice,inserter,insert_time,updater,update_time,instance_id,create_by,create_time,update_by,update_time,apply_user,apply_time
+    </sql>
+
+    <!-- 带参数查询督查督办情况反馈表列表 -->
+    <select id="selectPageList" resultType="com.jk.db.entity.DbFeedback">
+        select
+            <include refid="Base_Column_List"/>
+        from db_feedback where 1=1
+            <if test="dbType !=null and dbType!=''">
+                    and db_type like concat('%',#{dbType},'%')
+            </if>
+            <if test="dbId !=null and dbId!=''">
+                        and db_id = #{dbId}
+            </if>
+
+    </select>
+
+
+</mapper>
+

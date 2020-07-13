@@ -1,0 +1,120 @@
+package com.jk.api.service.impl;
+
+
+import com.jk.activiti.domain.BizTodoItem;
+import com.jk.activiti.mapper.BizTodoItemMapper;
+import com.jk.api.enums.RoleEnums;
+import com.jk.api.service.ApiService;
+import com.jk.common.bean.ReturnBean;
+import com.jk.common.bean.ReturnCode;
+import com.jk.common.exception.KqException;
+import com.jk.kq.common.GeneralConvertor;
+import com.jk.kq.entity.LeaveRecord;
+import com.jk.kq.entity.dto.LeaveRecordDTO;
+import com.jk.kq.service.ILeaveRecordService;
+import com.jk.sys.entity.Organ;
+import com.jk.sys.entity.Role;
+import com.jk.sys.entity.User;
+import com.jk.sys.service.IOrganService;
+import com.jk.sys.service.IUserService;
+import org.activiti.engine.TaskService;
+import org.activiti.engine.task.Task;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.CollectionUtils;
+import org.springframework.util.ObjectUtils;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+@Service
+public class LeaveRecordService {
+
+    @Autowired
+    private ILeaveRecordService recordService;
+
+    @Autowired
+    private GeneralConvertor convertor;
+
+    @Autowired
+    private IOrganService organService;
+
+
+    @Autowired
+    private BizTodoItemMapper bizTodoItemMapper;
+
+
+    @Autowired
+    private TaskService taskService;
+    @Autowired
+    private IUserService userService;
+
+    @Autowired
+    private ApiService apiService;
+
+    @Transactional
+    public Integer addLeave(User openUser, LeaveRecordDTO dto) throws KqException {
+
+        int leave = apiService.selectRole(openUser.getRoles());
+        //判断角色
+        if (leave == 0){
+            throw new KqException(ReturnBean.error(ReturnCode.INVALID_REQUEST.getCode(),
+                    "发起申请人角色无定义"));
+        }
+        //判断当前用户的角色
+        Map<String,Object> map =new HashMap<>();
+        map.put("leave",leave);
+        map.put("day",dto.getDay());
+        LeaveRecord convertor = this.convertor.convertor(dto, LeaveRecord.class);
+        Organ organ = organService.selectById(openUser.getOrganId());
+        convertor.setOpenUserId(openUser.getId());
+        convertor.setName(openUser.getName());
+        convertor.setOrgan(organ.getName());
+        convertor.setOrganId(openUser.getOrganId());
+        recordService.insert(convertor);
+        recordService.submitApply(convertor,openUser.getName(),"leave",map);
+        return convertor.getId();
+    }
+//
+    public List<User> nextHandel(String instanceId){
+        List<User> result = new ArrayList<>();
+        List<Task> taskList = taskService.createTaskQuery().processInstanceId(instanceId).active().list();
+        if (ObjectUtils.isEmpty(taskList)){
+            return null;
+        }
+        for (Task task : taskList) {
+            // todoitem 去重
+            BizTodoItem bizTodoItem = bizTodoItemMapper.selectTodoItemByTaskId(task.getId());
+            if (bizTodoItem != null) continue;
+            String assignee = task.getAssignee();
+            if (StringUtils.isNotBlank(assignee)) {
+                Integer userId = userService.getUserId(assignee);
+                User user = userService.selectById(userId);
+                result.add(user);
+            } else {
+                // 查询候选用户组
+                List<String> todoUserIdList = bizTodoItemMapper.selectTodoUserListByTaskId(task.getId());
+                if (!CollectionUtils.isEmpty(todoUserIdList)) {
+                    for (String todoUserId : todoUserIdList) {
+                        Integer userId = userService.getUserId(todoUserId);
+                        User user = userService.selectById(userId);
+                        result.add(user);
+                    }
+                } else {
+                    // 查询候选用户
+                    String todoUserId = bizTodoItemMapper.selectTodoUserByTaskId(task.getId());
+                    Integer userId  = userService.getUserId(todoUserId);
+                    User user = userService.selectById(userId);
+                    result.add(user);
+                }
+            }
+        }
+        return result;
+    }
+
+}

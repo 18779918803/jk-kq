@@ -1,0 +1,135 @@
+package com.jk.api.controller;
+
+import com.jk.activiti.service.impl.LeaveServiceImpl;
+import com.jk.api.service.ApiService;
+import com.jk.api.service.impl.LeaveRecordService;
+import com.jk.api.util.SendWeChatUtil;
+import com.jk.common.annotation.KrtIgnoreAuth;
+import com.jk.common.bean.ReturnBean;
+import com.jk.common.bean.ReturnCode;
+import com.jk.common.exception.KqException;
+import com.jk.kq.common.GeneralConvertor;
+import com.jk.kq.config.WorkTypeConfig;
+import com.jk.kq.entity.LeaveRecord;
+import com.jk.kq.entity.OpenUser;
+import com.jk.kq.entity.WorkType;
+import com.jk.kq.entity.dto.LeaveRecordDTO;
+import com.jk.kq.entity.vo.LeaveRecordVO;
+import com.jk.kq.service.ILeaveRecordService;
+import com.jk.kq.service.IOpenUserService;
+import com.jk.kq.service.IWorkTypeService;
+import com.jk.sys.entity.Organ;
+import com.jk.sys.entity.User;
+import com.jk.sys.service.IOrganService;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.ObjectUtils;
+import org.springframework.web.bind.annotation.*;
+import javax.servlet.http.HttpServletRequest;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * 请假记录相关的微信小程序API接口
+ * @author 何任鹏
+ * @version 1.0
+ * @date 2020年06月01日
+ */
+@RestController
+@RequestMapping("api/wechat/kq")
+@Slf4j
+public class LeaveRecordApi {
+
+    @Autowired
+    private ILeaveRecordService leaveRecordService;
+
+    @Autowired
+    private ApiService apiService;
+
+    @Autowired
+    private IWorkTypeService workTypeService;
+
+    @Autowired
+    private IOpenUserService openUserService;
+
+    @Autowired
+    private SendWeChatUtil sendWeChatUtil;
+
+
+    @Autowired
+    private  ILeaveRecordService  recordService;
+
+    @Autowired
+    private GeneralConvertor convertor;
+
+    @Autowired
+    private IOrganService organService;
+
+    @Autowired
+    private LeaveRecordService  leaveService;
+
+    /**
+     * 查找所有的请假记录，可以按照月份查找
+     * @param request
+     * @param dto dto
+     * @return
+     */
+    @KrtIgnoreAuth
+    @GetMapping("leave/list")
+    public ReturnBean list(HttpServletRequest request, LeaveRecordDTO dto) throws KqException {
+        User openUser = apiService.getOpenUser(request);
+        if (ObjectUtils.isEmpty(dto.getDate())){
+            return ReturnBean.error(ReturnCode.INVALID_REQUEST);
+        }
+        List<LeaveRecordVO> vos = leaveRecordService.selectByOpenUserIdAndDate(openUser.getId(), dto.getDate());
+        return ReturnBean.ok(vos);
+    }
+
+    /**
+     * 查找所有的请假记录类型
+     * @return
+     */
+    @KrtIgnoreAuth
+    @GetMapping("leave/type")
+    public ReturnBean types() {
+        List<WorkType> leaveTypes = workTypeService.selectByPid(WorkTypeConfig.LEAVE);
+        return ReturnBean.ok(leaveTypes);
+    }
+
+    /**
+     * 新增用户请假申请
+     * @return
+     */
+    @KrtIgnoreAuth
+    @PostMapping("leave/insert")
+    @Transactional
+    public ReturnBean insert(HttpServletRequest request,@RequestBody LeaveRecordDTO dto) throws KqException {
+        User openUser = apiService.getOpenUser(request);
+        if (ObjectUtils.isEmpty(dto.getStartDate()) || ObjectUtils.isEmpty(dto.getEndDate())){
+            log.error("日期错误");
+            return ReturnBean.error(ReturnCode.INVALID_REQUEST);
+        }
+        if (ObjectUtils.isEmpty(dto.getDay())){
+            log.error("天数为空");
+            return ReturnBean.error(ReturnCode.INVALID_REQUEST);
+        }
+        if (ObjectUtils.isEmpty(dto.getReason())){
+            log.error("理由为空");
+            return ReturnBean.error(ReturnCode.INVALID_REQUEST);
+        }
+        leaveService.addLeave(openUser,dto);
+
+        //只有推送用户不为空的时候，才会进行推送，其他情况默认不推送
+//        if(checkList != null){
+//            List<String> gzhOpenIds = openUserService.getGzhOpenIds(checkList);
+//            for (String gzhOpenId : gzhOpenIds) {
+//                sendWeChatUtil.sendMessage(gzhOpenId,"您好，您有一个员工申请待审批!",
+//                        "请假申请", "待审批", "leaveRecord.getReason()",
+//                        "点击查看详情", "页面跳转路径（项目上线后填入路径）");
+//            }
+//        }
+        return ReturnBean.ok();
+    }
+}

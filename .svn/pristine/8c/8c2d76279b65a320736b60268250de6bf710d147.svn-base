@@ -1,0 +1,52 @@
+package com.jk.kq.service.impl;
+
+import com.jk.common.base.BaseServiceImpl;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import com.jk.kq.entity.PunchRecord;
+import com.jk.kq.mapper.PunchRecordMapper;
+import com.jk.kq.service.IPunchRecordService;
+
+import java.util.Date;
+import java.util.List;
+
+
+/**
+ * 打卡记录服务接口实现层
+ *
+ * @author 何任鹏
+ * @version 1.0
+ * @date 2020年05月25日
+ */
+@Service
+public class PunchRecordServiceImpl extends BaseServiceImpl<PunchRecordMapper, PunchRecord> implements IPunchRecordService {
+
+    @Autowired
+    private PunchRecordMapper punchRecordMapper;
+
+    /**
+     * 通过OpenUserId和当前日期查找打卡记录信息
+     *
+     * @param openUserId
+     * @param date
+     * @return
+     */
+    @Override
+    public List<PunchRecord> selectByOpenUserIdAndDate(Long openUserId, Date date) {
+        return punchRecordMapper.selectByOpenUserIdAndDate(openUserId, date);
+    }
+
+    /**
+     * 检查用户在今天是否有9点之后的打卡记录
+     *
+     * @param openUserId
+     * @param toDay
+     * @return
+     */
+    @Override
+    public Integer checkPunch(Integer openUserId, Date toDay) {
+        return punchRecordMapper.checkPunch(openUserId,toDay);
+    }
+
+
+}

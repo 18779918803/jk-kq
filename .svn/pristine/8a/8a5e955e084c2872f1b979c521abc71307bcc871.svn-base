@@ -1,0 +1,87 @@
+package com.jk.db.entity;
+
+import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.jk.common.base.BaseEntity;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import java.util.Date;
+import org.springframework.format.annotation.DateTimeFormat;
+
+/**
+ * 督查督办情况反馈表实体类
+ *
+ * @author 刘杭
+ * @version 1.0
+ * @date 2020年06月08日
+ */
+@Data
+@NoArgsConstructor
+@EqualsAndHashCode(callSuper = false)
+@TableName("db_feedback")
+public class DbFeedback extends BaseEntity {
+
+    /**
+     * 督办类别
+     */
+    private String dbType;
+
+    /**
+     * 编号
+     */
+    private Integer dbId;
+
+    /**
+     * 督办事项来源
+     */
+    private String dbSource;
+
+    /**
+     * 事项内容及要求（简要）
+     */
+    private String dbContentBrief;
+
+    /**
+     * 所涉事项要求办结期限
+     */
+    @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private Date dbAskFinaltime;
+
+    /**
+     * 重要程度（A,B,C）
+     */
+    private String dbLevel;
+
+    /**
+     * 实际完成时间
+     */
+    @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private Date totalTime;
+
+    /**
+     * 完成佐证（最终完成情况及佐证材料目录）
+     */
+    private String finalEvidence;
+
+    /**
+     * 牵头部门负责人
+     */
+    private String departmentPrincipal;
+
+    /**
+     * 牵头部门分管领导
+     */
+    private String chargeLead;
+
+    /**
+     * 总经理意见
+     */
+    private String managerAdvice;
+
+    /**
+     * 董事长意见
+     */
+    private String presidentAdvice;
+
+}

@@ -1,0 +1,18 @@
+package com.jk.kq.mapper;
+
+import com.jk.common.base.BaseMapper;
+import org.apache.ibatis.annotations.Mapper;
+import com.jk.kq.entity.Position;
+
+/**
+ * 职位映射层
+ *
+ * @author 何任鹏
+ * @version 1.0
+ * @date 2020年05月26日
+ */
+@Mapper
+public interface PositionMapper extends BaseMapper<Position> {
+
+
+}

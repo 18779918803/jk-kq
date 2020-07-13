@@ -1,0 +1,21 @@
+package com.jk.api.dto;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+/**
+ * 已完成审批dto
+ */
+@Data
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
+public class FinishDTO {
+    /**
+     * CheckEnums
+     */
+    private Integer typeId;
+}

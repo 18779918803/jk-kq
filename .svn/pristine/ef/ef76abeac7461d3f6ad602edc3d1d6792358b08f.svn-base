@@ -1,0 +1,222 @@
+package com.jk.api.controller;
+
+import com.jk.api.dto.DbDTO;
+import com.jk.api.enums.TypeEnums;
+import com.jk.api.service.ApiService;
+import com.jk.api.util.SendWeChatUtil;
+import com.jk.common.annotation.KrtIgnoreAuth;
+import com.jk.common.bean.ReturnBean;
+import com.jk.common.bean.ReturnCode;
+import com.jk.db.entity.DbApply;
+import com.jk.db.entity.DbDelay;
+import com.jk.db.entity.DbFeedback;
+import com.jk.db.service.IDbApplyService;
+import com.jk.db.service.IDbDelayService;
+import com.jk.db.service.IDbFeedbackService;
+import com.jk.kq.mapper.GzhOpenUserMapper;
+import com.jk.kq.utils.TaskUtilService;
+import com.jk.sys.entity.User;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.ObjectUtils;
+import org.springframework.web.bind.annotation.*;
+
+import javax.servlet.http.HttpServletRequest;
+import java.util.*;
+
+/**
+ * {{督办小程序审批流程}}
+ *
+ * @author 刘杭
+ * @version 1.0
+ * @date 2020年06月15日
+ */
+@RestController
+@RequestMapping("api/wechat/db")
+@Slf4j
+public class DbApplyCheckApi {
+    @Autowired
+    private IDbApplyService dbApplyService;
+
+    @Autowired
+    private IDbDelayService dbDelayService;
+
+    @Autowired
+    private IDbFeedbackService dbFeedbackService;
+
+    @Autowired
+    private ApiService apiService;
+
+    @Autowired
+    private TaskUtilService taskUtilService;
+
+
+    @Autowired
+    private GzhOpenUserMapper gzhMapper;
+
+    @Autowired
+    private SendWeChatUtil sendWeChatUtil;
+
+
+    /**
+     * 获取所有的审核列表按照日期和搜索条件
+     * @return
+     */
+    @KrtIgnoreAuth
+    @GetMapping("record/list")
+    public ReturnBean applicationList(HttpServletRequest request, DbDTO dto)   {
+        User openUser = apiService.getUser(request);
+        if (ObjectUtils.isEmpty(dto.getTypePId())){
+            return ReturnBean.error(
+                    ReturnCode.INVALID_REQUEST.getCode(),"typeId为空"
+            );
+        }
+        Map map = new HashMap();
+        //督察督办立项
+        if (TypeEnums.DBAPPLY.getStatus().equals(dto.getTypePId())) {
+            map.put("type", TypeEnums.DBAPPLY.name().toLowerCase());
+            List<DbApply> page = dbApplyService.findTodoTasks(openUser.getUsername(), map);
+            return ReturnBean.ok(page);
+        }else if (TypeEnums.DBDELAY.getStatus().equals(dto.getTypePId())){
+            map.put("type", TypeEnums.DBDELAY.name().toLowerCase());
+            List<DbDelay> dbDelays = dbDelayService.findTodoTasks(openUser.getUsername(), map);
+            return ReturnBean.ok(dbDelays);
+        }else if (TypeEnums.FEEDBACK.getStatus().equals(dto.getTypePId())){
+            map.put("type", TypeEnums.FEEDBACK.name().toLowerCase());
+            List<DbFeedback> dbFeedbacks = dbFeedbackService.findTodoTasks(openUser.getUsername(), map);
+            return ReturnBean.ok(dbFeedbacks);
+        }
+        return ReturnBean.ok();
+
+    }
+
+    /**
+     * 通过申请，也要推送用户，如果审批结束，推送给申请人，审批未结束，推送给下一个审批人
+     *
+     * @return
+     */
+    @KrtIgnoreAuth
+    @PostMapping("record/pass")
+    public ReturnBean pass(HttpServletRequest request, @RequestBody Map map)   {
+        User openUser = apiService.getUser(request);
+//        String openId = openUser.getOpenId();
+        Integer pid = (Integer) map.get("pid");
+        Integer id = (Integer) map.get("id");
+        if (ObjectUtils.isEmpty(map.get("id"))) {
+            log.error("id为空");
+            return ReturnBean.error(ReturnCode.INVALID_REQUEST);
+        }
+        if (ObjectUtils.isEmpty(map.get("pid"))) {
+            log.error("pid为空");
+            return ReturnBean.error(ReturnCode.INVALID_REQUEST);
+        }
+        if (TypeEnums.DBAPPLY.getStatus().equals(pid)) {
+            dbApplyService.approval(id, openUser, request);
+            DbApply dbApply = dbApplyService.selectById(id);
+            Map<String, Integer> end = taskUtilService.isEnd(dbApply.getInstanceId());
+            Integer isEnd = end.get("isEnd");
+            Integer isPass = end.get("isPass");
+            dbApply.setIsPass(isPass);
+            dbApply.setIsEnd(isEnd);
+            dbApplyService.updateById(dbApply);
+            List<User> ids = apiService.nextHandel(dbApply.getInstanceId());
+            for (User userId : ids) {
+//                GzhOpenUser gzhOpenUser = gzhMapper.selectByOpenId(userId.getUnionId());
+//                sendWeChatUtil.sendMessage(gzhOpenUser.getOpenid(), "您好，您有一个督察督办立项申请待审批!",
+//                        "核销申请", "待审批", "通过",
+//                        "点击查看详情", "页面跳转路径（项目上线后填入路径）");
+            }
+
+        } else if (TypeEnums.DBDELAY.getStatus().equals(pid)) {
+            dbDelayService.approval(id, openUser, request);
+            DbDelay dbDelay = dbDelayService.selectById(id);
+            Map<String, Integer> end = taskUtilService.isEnd(dbDelay.getInstanceId());
+            Integer isEnd = end.get("isEnd");
+            Integer isPass = end.get("isPass");
+            dbDelay.setIsPass(isPass);
+            dbDelay.setIsEnd(isEnd);
+            dbDelayService.updateById(dbDelay);
+            List<User> ids = apiService.nextHandel(dbDelay.getInstanceId());
+            for (User userId : ids) {
+//                GzhOpenUser gzhOpenUser = gzhMapper.selectByOpenId(userId.getUnionId());
+//                sendWeChatUtil.sendMessage(gzhOpenUser.getOpenid(), "您好，您有一个督察督办延期（撤销）申请待审批!",
+//                        "请假申请", "待审批", "通过",
+//                        "点击查看详情", "页面跳转路径（项目上线后填入路径）");
+            }
+
+
+        } else if (TypeEnums.FEEDBACK.getStatus().equals(pid)) {
+            dbFeedbackService.approval(id, openUser, request);
+            DbFeedback dbFeedback = dbFeedbackService.selectById(id);
+            Map<String, Integer> end = taskUtilService.isEnd(dbFeedback.getInstanceId());
+            Integer isEnd = end.get("isEnd");
+            Integer isPass = end.get("isPass");
+            dbFeedback.setIsPass(isPass);
+            dbFeedback.setIsEnd(isEnd);
+            dbFeedbackService.updateById(dbFeedback);
+            List<User> ids = apiService.nextHandel(dbFeedback.getInstanceId());
+            for (User userId : ids) {
+//                GzhOpenUser gzhOpenUser = gzhMapper.selectByOpenId(userId.getUnionId());
+//                sendWeChatUtil.sendMessage(gzhOpenUser.getOpenid(), "您好，您有一个督察督办办结反馈申请待审批!",
+//                        "加班申请", "待审批", "通过",
+//                        "点击查看详情", "页面跳转路径（项目上线后填入路径）");
+            }
+        }
+        return ReturnBean.ok();
+    }
+
+
+    /**
+     * 拒绝申请，也要推送用户，申请拒绝，直接结束审批流程，推送消息给申请人
+     *
+     * @return
+     */
+    @KrtIgnoreAuth
+    @PostMapping("record/reject")
+    public ReturnBean reject(HttpServletRequest request, @RequestBody Map map)   {
+        User openUser = apiService.getUser(request);
+//        Position position = positionService.selectById(openUser.getPositionId());
+//        Integer state = position.getGrade() * -1;
+        Integer pid = (Integer) map.get("pid");
+        Integer id = (Integer) map.get("id");
+//        String openId = openUser.getOpenId();
+        if (ObjectUtils.isEmpty(map.get("id"))) {
+            log.error("id为空");
+            return ReturnBean.error(ReturnCode.INVALID_REQUEST);
+        }
+        if (ObjectUtils.isEmpty(map.get("pid"))) {
+            log.error("pid为空");
+            return ReturnBean.error(ReturnCode.INVALID_REQUEST);
+        }
+        if (TypeEnums.DBAPPLY.getStatus().equals(pid)) {
+            dbApplyService.reject(id, openUser, request);
+            DbApply dbApply = dbApplyService.selectById(id);
+            Map<String, Integer> end = taskUtilService.isEnd(dbApply.getInstanceId());
+            Integer isEnd = end.get("isEnd");
+            Integer isPass = end.get("isPass");
+            dbApply.setIsPass(isPass);
+            dbApply.setIsEnd(isEnd);
+            dbApplyService.updateById(dbApply);
+        } else if (TypeEnums.DBDELAY.getStatus().equals(pid)) {
+            dbDelayService.reject(id, openUser, request);
+            DbDelay dbDelay = dbDelayService.selectById(id);
+            Map<String, Integer> end = taskUtilService.isEnd(dbDelay.getInstanceId());
+            Integer isEnd = end.get("isEnd");
+            Integer isPass = end.get("isPass");
+            dbDelay.setIsPass(isPass);
+            dbDelay.setIsEnd(isEnd);
+            dbDelayService.updateById(dbDelay);
+
+        } else if (TypeEnums.FEEDBACK.getStatus().equals(pid)) {
+            dbFeedbackService.reject(id, openUser, request);
+            DbFeedback dbFeedback = dbFeedbackService.selectById(id);
+            Map<String, Integer> end = taskUtilService.isEnd(dbFeedback.getInstanceId());
+            Integer isEnd = end.get("isEnd");
+            Integer isPass = end.get("isPass");
+            dbFeedback.setIsPass(isPass);
+            dbFeedback.setIsEnd(isEnd);
+            dbFeedbackService.updateById(dbFeedback);
+        }
+        return ReturnBean.ok();
+    }
+}

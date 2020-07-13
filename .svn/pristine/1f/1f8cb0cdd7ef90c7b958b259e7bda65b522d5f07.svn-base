@@ -1,0 +1,155 @@
+package com.jk.api.controller;
+
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.jk.api.dto.HolidayDTO;
+import com.jk.api.service.ApiService;
+import com.jk.common.annotation.KrtIgnoreAuth;
+import com.jk.common.base.BaseController;
+import com.jk.common.bean.DataTable;
+import com.jk.common.bean.ReturnBean;
+import com.jk.common.bean.ReturnCode;
+import com.jk.common.exception.KqException;
+import com.jk.common.util.DateUtils;
+import com.jk.kq.entity.Holiday;
+import com.jk.kq.entity.StatisReport;
+import com.jk.kq.entity.dto.StatisReportDTO;
+import com.jk.kq.enums.ReportEnums;
+import com.jk.kq.service.IHolidayService;
+import com.jk.kq.service.IPunchRecordService;
+import com.jk.kq.service.IStatisReportService;
+import com.jk.sys.entity.User;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.stereotype.Controller;
+import org.springframework.util.ObjectUtils;
+import org.springframework.web.bind.annotation.*;
+
+import javax.servlet.http.HttpServletRequest;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * 和考勤小程序日历相关的API接口
+ *
+ * @author 缪隽峰
+ * @version 1.0
+ * @date 2020年05月21日
+ */
+@Slf4j
+@Controller
+@RestController
+@RequestMapping("api/calendar")
+public class CalendarController extends BaseController {
+
+    @Autowired
+    private IHolidayService holidayService;
+
+    @Autowired
+    private IPunchRecordService punchRecordService;
+
+    @Autowired
+    private IStatisReportService statisReportService;
+
+    @Autowired
+    private ApiService apiService;
+
+    /**
+     * 微信小程序获取所有的法定节假日信息
+     * @return
+     */
+    @KrtIgnoreAuth
+    @PostMapping("holiday")
+    public ReturnBean list(@RequestParam("date") String date) {
+        JSONObject retval = new JSONObject();
+        JSONArray retvalHoliday = new JSONArray();
+        JSONArray retvalOvertime = new JSONArray();
+        List<Holiday> holidays = holidayService.selectHoliday(date);
+        for( Holiday holiday : holidays ){
+            Date start = holiday.getStart();
+            while (!start.after(holiday.getEnd())) {
+                JSONObject temp = new JSONObject();
+                temp.put("date", DateUtils.dateToString("yyyy-MM-dd", start));
+                if( holiday.getType() == 1 ) {
+                    retvalHoliday.add(temp);
+                }else if( holiday.getType() == 2 ){
+                    retvalOvertime.add(temp);
+                }
+                start = DateUtils.dateAdd("day", 1, start);
+            }
+        }
+        retval.put("holiday", retvalHoliday);
+        retval.put("overtime", retvalOvertime);
+        return ReturnBean.ok(retval);
+    }
+
+    /**
+     * 通过OpenUserId和当前日期，获取当前日期该用户的打卡记录
+     *
+     * @param request
+     * @param date
+     * @return
+     */
+    @KrtIgnoreAuth
+    @GetMapping("clock")
+    public ReturnBean list(HttpServletRequest request, @DateTimeFormat(pattern = "yyyy-MM-dd") Date date) throws KqException {
+        User openUser = apiService.getOpenUser(request);
+//        List<PunchRecord> punchRecords = punchRecordService.selectByOpenUserIdAndDate(openUser.getId(), date);
+        return ReturnBean.ok();
+    }
+
+    /**
+     * 日历状态信息
+     * @param para 搜索参数
+     * @return {@link DataTable}
+     */
+    @KrtIgnoreAuth
+    @PostMapping("status")
+    public ReturnBean list(StatisReportDTO dto) throws KqException {
+        User user = apiService.getOpenUser(request);
+
+        if (ObjectUtils.isEmpty(dto.getDate())){
+            return ReturnBean.error(ReturnCode.INVALID_REQUEST);
+        }
+        //获取当前月份第一天和当前天
+        LocalDate date = dto.getDate();
+
+//        LocalDateTime firstday = DateUtils.firstday(date);
+//        LocalDate lastDay = DateUtils.lastDay(date);
+//        Query query = new Query(para);
+//        Page page = query.getPage();
+//        PageHelper.startPage(page);
+//        List list = baseMapper.selectPageList(para);
+//        page.setRecords(list);
+        Map<String,Object> para = new HashMap<String,Object>();
+//        para.put("startDate",firstday);
+//        para.put("endDate",lastDay);
+        para.put("userId",user.getId());
+        para.put("start",1);
+        para.put("length",500);
+        IPage page = statisReportService.selectPageList(para);
+        List<StatisReport> records = page.getRecords();
+
+        for (StatisReport record : records) {
+            String type = record.getType();
+            if (ReportEnums.QUIT.name().toLowerCase().equals(type)){
+                record.setType(ReportEnums.QUIT.getStatus());
+            }else if (ReportEnums.LATE.name().toLowerCase().equals(type)){
+                record.setType(ReportEnums.LATE.getStatus());
+            } else if (ReportEnums.EARLY_QUIT.name().toLowerCase().equals(type)){
+                record.setType(ReportEnums.EARLY_QUIT.getStatus());
+            }else if (ReportEnums.NORMAL.name().toLowerCase().equals(type)){
+                record.setType(ReportEnums.NORMAL.getStatus());
+            }
+        }
+
+        return ReturnBean.ok(page);
+    }
+}

@@ -1,0 +1,79 @@
+package com.jk.api.controller;
+
+
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.jk.api.service.ApiService;
+import com.jk.common.annotation.KrtIgnoreAuth;
+import com.jk.common.annotation.KrtLog;
+import com.jk.common.base.BaseController;
+import com.jk.common.bean.DataTable;
+import com.jk.common.bean.ReturnBean;
+import com.jk.common.bean.ReturnCode;
+import com.jk.common.exception.KqException;
+import com.jk.kq.entity.StatisReport;
+import com.jk.kq.entity.dto.StatisReportDTO;
+import com.jk.kq.service.IStatisReportService;
+import com.jk.kq.utils.DateUtils;
+import org.apache.shiro.authz.annotation.RequiresPermissions;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.ObjectUtils;
+import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
+
+
+/**
+ * 个人维度报告控制层
+ *
+ * @author zhangwl
+ * @version 1.0
+ * @date 2020年06月18日
+ */
+@RestController
+@RequestMapping("api/wechat/kq")
+public class StatisReportApi extends BaseController {
+
+    @Autowired
+    private IStatisReportService statisReportService;
+
+
+    @Autowired
+    private ApiService apiService;
+
+    /**
+     * 个人维度报告管理
+     * @param para 搜索参数
+     * @return {@link DataTable}
+     */
+    @KrtIgnoreAuth
+    @GetMapping("/statisReport/list")
+    public ReturnBean list( StatisReportDTO dto) throws KqException {
+//        User user = apiService.getOpenUser(request);
+
+        if (ObjectUtils.isEmpty(dto.getDate())){
+            return ReturnBean.error(ReturnCode.INVALID_REQUEST);
+        }
+        //获取当前月份第一天和当前天
+        LocalDate date = dto.getDate();
+
+        LocalDateTime firstday = DateUtils.firstday(date);
+        LocalDate lastDay = DateUtils.lastDay(date);
+//        Query query = new Query(para);
+//        Page page = query.getPage();
+//        PageHelper.startPage(page);
+//        List list = baseMapper.selectPageList(para);
+//        page.setRecords(list);
+        Map<String,Object> para = new HashMap<String,Object>();
+        para.put("startDate",firstday);
+        para.put("endDate",lastDay);
+        para.put("userId",369);
+        para.put("start",1);
+        para.put("length",500);
+        IPage page = statisReportService.selectPageList(para);
+        return ReturnBean.ok(page);
+    }
+}

@@ -1,0 +1,67 @@
+<#include "/common/layoutList.ftl">
+<@header></@header>
+<@body class="body-bg-default">
+<div class="wrapper">
+    <section class="content">
+        <!-- 参数 -->
+        <input type="hidden" id="sName" value="${RequestParameters['sName']!}"/>
+        <input type="hidden" id="sId" value="${RequestParameters['sId']!}"/>
+        <!-- 列表数据区 -->
+        <div class="box">
+            <div class="box-body">
+                <table id="datatable" class="table table-bordered table-hover"></table>
+            </div>
+        </div>
+    </section>
+</div>
+</@body>
+<@footer>
+<script type="text/javascript">
+    var datatable;
+    $(function () {
+        //初始化datatable
+        datatable = $('#datatable').DataTable({
+            ajax: {
+                url: "${basePath}/sw/swProcess/approver",
+                type: "post",
+                data: function (d) {
+                d.name = $("#name").val();
+                d.organ = $("#organ").val();
+				d.orderName = krt.util.camel2Underline(d.columns[d.order[0].column].data);
+				d.orderType = d.order[0].dir;
+                }
+            },
+            columns: [
+    {title: 'id', data: "id",visible:false},
+                {title: "id",data: "id"},
+                {title: "所属机构",data: "organ",
+                    render: function (data) {
+                        return data==null? "": data;
+                    }},
+                {title: "审批人",data: "name"},
+                {
+                    title: "操作",
+                    data: "id", orderable: false, class:"td-center", width:"40",
+                    "render": function (data, type, row) {
+                        var checked = "";
+                        var sId = $("#sId").val();
+                        if (sId == data) {
+                            checked = "checked";
+                        }
+                        return '<input type="radio" ' + checked + ' class="icheck rCheck" name="check" value="' + data + '" rname="' + row.name + '" rid="' + row.id + '">';
+                    }
+                }
+            ],
+            "fnDrawCallback": function () {
+                rCheck();
+            }
+        });
+
+        $("#searchBtn").on('click', function () {
+            $("#sName").val("");
+            $("#sId").val("");
+            datatable.ajax.reload();
+        });
+    })
+</script>
+</@footer>

@@ -1,0 +1,46 @@
+package com.jk.kq.service;
+
+import com.jk.kq.entity.OpenUser;
+import com.jk.kq.entity.WriteoffRecord;
+import com.jk.common.base.IBaseService;
+
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+
+
+/**
+ * 核销申请服务接口层
+ *
+ * @author 何任鹏
+ * @version 1.0
+ * @date 2020年06月01日
+ */
+public interface IWriteoffRecordService extends IBaseService<WriteoffRecord> {
+
+    /**
+     * 通过openUserId查找当月用户的核销申请记录
+     *
+     * @param openUserId
+     * @param date
+     * @return
+     */
+    List<WriteoffRecord> selectByOpenUserIdAndDate(Long openUserId, Date date);
+
+    /**
+     * 新增用户核销申请
+     *
+     * @param openUser
+     * @param writeoffRecord
+     * @return 返回该申请需要推送的用户的集合
+     */
+    List<OpenUser> insert(OpenUser openUser, WriteoffRecord writeoffRecord);
+
+    /**
+     * 找该用户等级可以审核的核销申请
+     *
+     * @param queryMap
+     * @return
+     */
+    List selectToCheck(Map queryMap);
+}

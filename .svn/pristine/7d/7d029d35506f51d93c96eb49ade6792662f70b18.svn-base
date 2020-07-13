@@ -1,0 +1,87 @@
+package com.jk.kq.service.impl;
+
+import com.jk.activiti.domain.HistoricActivity;
+import com.jk.kq.common.GeneralConvertor;
+import com.jk.kq.entity.LeaveRecord;
+import com.jk.kq.entity.WorkType;
+import com.jk.kq.entity.vo.LeaveRecordVO;
+import com.jk.kq.enums.TypeEnums;
+import com.jk.kq.mapper.ChekcMapper;
+import com.jk.kq.service.ICheckService;
+import com.jk.kq.service.ILeaveRecordService;
+import com.jk.kq.service.IWorkTypeService;
+import com.jk.kq.utils.TaskUtilService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * 审核用户申请
+ *
+ * @author 何任鹏
+ * @version 1.0
+ * @date 2020年06月03日
+ */
+@Service
+public class CheckServiceImpl implements ICheckService {
+
+    @Autowired
+    private ChekcMapper chekcMapper;
+
+    @Autowired
+    private ILeaveRecordService leaveRecordService;
+
+    @Autowired
+    private GeneralConvertor convertor;
+
+    @Autowired
+    private TaskUtilService taskUtilService;
+
+    @Autowired
+    private IWorkTypeService workTypeService;
+
+
+    /**
+     * 添加申请流程记录
+     *
+     * @param pid
+     * @param id
+     * @param openUserId
+     * @param checkState
+     */
+    @Override
+    public void addCheckProcess(Integer pid, Integer id, Long openUserId, Integer checkState, Date insertTime) {
+        chekcMapper.addCheckProcess(pid, id, openUserId, checkState,insertTime);
+    }
+
+    /**
+     * 获取单个记录的审批流程记录
+     * @param pid
+     * @param id
+     * @return
+     */
+    @Override
+    public LeaveRecordVO getcurrentRecordDetail(Integer pid, Integer id) {
+        LeaveRecordVO result = null;
+        if (TypeEnums.LEAVE.getStatus().equals(pid)){
+            LeaveRecord leaveRecord = leaveRecordService.selectById(id);
+            Integer typeId = leaveRecord.getTypeId();
+            WorkType workType = workTypeService.selectById(typeId);
+            result = this.convertor.convertor(leaveRecord, LeaveRecordVO.class);
+            Map<String, Boolean> end = taskUtilService.isEnd(result.getInstanceId());
+            result.setIsEnd(end.get("isEnd"));
+            result.setIsPass(end.get("isPass"));
+            List<HistoricActivity> approvalList = taskUtilService.getApprovalList(result.getInstanceId(),
+                    null, null);
+            result.setHis(approvalList);
+            result.setTypeName(workType.getName());
+
+        }
+        return result;
+    }
+
+
+}

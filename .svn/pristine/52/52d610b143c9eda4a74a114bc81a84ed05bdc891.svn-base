@@ -1,0 +1,335 @@
+package com.jk.api.util;
+
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.jk.kq.entity.GzhOpenUser;
+import com.jk.kq.entity.OpenUser;
+import com.jk.kq.service.IGzhOpenUserService;
+import com.jk.kq.service.IOpenUserService;
+import com.jk.sys.entity.User;
+import com.jk.sys.service.IUserService;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.ObjectUtils;
+
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * 推送消息给微信公总号，封装模板方法
+ *
+ * @author 何任鹏
+ * @version 1.0
+ * @date 2020年06月08日
+ */
+@Slf4j
+@Component
+//@EnableScheduling
+public class SendWeChatUtil {
+
+    @Autowired
+    private IGzhOpenUserService gzhOpenUserService;
+
+    @Autowired
+    private IOpenUserService userService;
+
+    /**
+     * 模板消息ID（可以直接选择合适的模板ID）
+     */
+    private final static String TEMPLATE_ID = "IsaNvdbysTTdGLDfluL6avySbZkiWe-OLkJM2X6HKrI";
+
+    /**
+     * 微信公众号APP_ID（和微信小程序的APP_ID不是同一个）
+     */
+    public final static String APP_ID = "wx72cc2c4c6937ea1d";
+
+    /**
+     * 微信公众号APP_SECRET（和微信小程序的APP_SECRET不是同一个）
+     */
+    public final static String APP_SECRET = "0878f6485a07198a80a7f35317c61a33";
+
+    /**
+     * 访问凭证，有效期2个小时，因为每天只能获取200个，
+     * 所以该类中有一个定时任务，每隔两个小时会刷新一次ACCESS_TOKEN
+     */
+    public static String ACCESS_TOKEN = "";
+
+    /**
+     * 推送消息模板方法
+     *
+     * @param openId      需要推送的微信公众号的用户的openId
+     * @param head        消息头部提示文本（您好，你有一个员工申请待审批！）
+     * @param name        审批名称（例如：加班申请）
+     * @param state       审批状态（待审批）
+     * @param messageText 详细内容（一般填入申请事由或原因，例如：overtimeRecord.getReason()）
+     * @param remarkText  消息备注（点击查看详情）
+     * @param regUser     点击消息后跳转的页面
+     */
+    public void sendMessage(final String openId, final String head,
+                            final String name, final String state, final String messageText,
+                            final String remarkText, final String regUser) {
+        try {
+            //用户点击推送消息之后跳转的页面
+            String url = "https://api.weixin.qq.com/cgi-bin/message/template/send?access_token=" + ACCESS_TOKEN;
+            Map<String, Object> map = new HashMap<String, Object>();
+            //推送用户openUserId
+            map.put("touser", openId);
+            //指定模版ID
+            map.put("template_id", TEMPLATE_ID);
+            //点击模版跳转地址
+            map.put("url", regUser);
+            Map<String, Object> dataMap = new HashMap<String, Object>();
+            Map<String, Object> first = new HashMap<String, Object>();
+            first.put("value", head);
+            first.put("color", "#000000");
+            //审批名称
+            Map<String, Object> keyword1 = new HashMap<String, Object>();
+            keyword1.put("value", name);
+            keyword1.put("color", "#000000");
+            //审批状态
+            Map<String, Object> keyword2 = new HashMap<String, Object>();
+            keyword2.put("value", state);
+            keyword2.put("color", "#000000");
+            //审批内容
+            Map<String, Object> keyword3 = new HashMap<String, Object>();
+            keyword3.put("value", messageText);
+            keyword3.put("color", "#000000");
+            //点击查看详情
+            Map<String, Object> remark = new HashMap<String, Object>();
+            remark.put("value", remarkText);
+            remark.put("color", "#000000");
+
+            dataMap.put("first", first);
+            dataMap.put("keyword1", keyword1);
+            dataMap.put("keyword2", keyword2);
+            dataMap.put("keyword3", keyword3);
+            dataMap.put("remark", remark);
+
+            map.put("data", dataMap);
+
+            String jsonArgs = JSONObject.toJSONString(map);
+            String result = HttpUtil.post(url, jsonArgs.toString());
+            log.error("微信服务器:{}",result);
+            JSONObject jsonObject = JSONObject.parseObject(result);
+            String isOk = String.valueOf(jsonObject.get("errmsg"));
+            if (isOk.equals("ok")) {
+                log.info("申请审批消息推送成功：" + openId);
+            } else {
+                log.error("申请审批消息推送失败：" + openId);
+            }
+        } catch (Exception e) {
+            log.error(e.toString());
+        }
+    }
+
+
+
+
+    /**
+     *
+     * @param openId gzh ()
+     * @param head
+     * @param name
+     * @param state
+     * @param messageText
+     * @param remarkText
+     * @param regUser
+     * @param access
+     */
+    public void sendMessageTest(final String openId, final String head,
+                            final String name, final String state, final String messageText,
+                            final String remarkText, final String regUser,String access) {
+        try {
+            //用户点击推送消息之后跳转的页面
+            String url = "https://api.weixin.qq.com/cgi-bin/message/template/send?access_token=" + access;
+            Map<String, Object> map = new HashMap<String, Object>();
+            //推送用户openUserId
+            map.put("touser", openId);
+            //指定模版ID
+            map.put("template_id", TEMPLATE_ID);
+            //点击模版跳转地址
+            map.put("url", regUser);
+            Map<String, Object> dataMap = new HashMap<String, Object>();
+            Map<String, Object> first = new HashMap<String, Object>();
+            first.put("value", head);
+            first.put("color", "#000000");
+            //审批名称
+            Map<String, Object> keyword1 = new HashMap<String, Object>();
+            keyword1.put("value", name);
+            keyword1.put("color", "#000000");
+            //审批状态
+            Map<String, Object> keyword2 = new HashMap<String, Object>();
+            keyword2.put("value", state);
+            keyword2.put("color", "#000000");
+            //审批内容
+            Map<String, Object> keyword3 = new HashMap<String, Object>();
+            keyword3.put("value", messageText);
+            keyword3.put("color", "#000000");
+            //点击查看详情
+            Map<String, Object> remark = new HashMap<String, Object>();
+            remark.put("value", remarkText);
+            remark.put("color", "#000000");
+
+            dataMap.put("first", first);
+            dataMap.put("keyword1", keyword1);
+            dataMap.put("keyword2", keyword2);
+            dataMap.put("keyword3", keyword3);
+            dataMap.put("remark", remark);
+
+            map.put("data", dataMap);
+
+            String jsonArgs = JSONObject.toJSONString(map);
+            String result = HttpUtil.post(url, jsonArgs.toString());
+            JSONObject jsonObject = JSONObject.parseObject(result);
+            String isOk = String.valueOf(jsonObject.get("errmsg"));
+            if (isOk.equals("ok")) {
+                log.info("申请审批消息推送成功：" + openId);
+            } else {
+                log.error("申请审批消息推送失败：" + openId);
+            }
+        } catch (Exception e) {
+            log.error(e.toString());
+        }
+    }
+
+    /**
+     * 静态代码块，让项目在一启动的时候就获取一个微信公众号的access_token
+     */
+    /*static {
+        ACCESS_TOKEN = getAccessToken();
+        log.info("ACCESS_TOKEN: " + ACCESS_TOKEN);
+    }*/
+    /**
+     * 每隔两个小时刷新一次微信公众号的access_token
+     *
+     * @throws UnsupportedEncodingException
+     */
+    //@Scheduled(cron = "0 0 0/1 * * ?")
+    public void refreshAccessToken() {
+        ACCESS_TOKEN = getAccessToken();
+        log.info("ACCESS_TOKEN: " + ACCESS_TOKEN);
+    }
+
+    /**
+     * 获取微信公众号的access_token
+     *
+     * @return
+     */
+    private static String getAccessToken() {
+        String url = "https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid="
+                + APP_ID + "&secret=" + APP_SECRET;
+        String json = HttpUtil.get(url);
+        JSONObject jsonObject = JSONObject.parseObject(json);
+        String accessToken = null;
+        if (jsonObject.containsKey("access_token")) {
+            accessToken = (String) jsonObject.get("access_token");
+        }
+        return accessToken;
+    }
+
+
+    /**
+     * 微信官方参考文档：https://developers.weixin.qq.com/doc/offiaccount/User_Management/Getting_a_User_List.html
+     * 用来拉取关注微信公众号的用户的openUserId
+     * 由于一次拉取用户的最大数量为10000，所以这里直接一次性拉取，不使用递归拉取
+     * <p>
+     * access_token   访问凭证
+     * next_openid    开始拉取的openUserId，超过10000个拉取数量需要填写，不超过直接传入空字符串，具体参考上方文档
+     */
+    @Transactional
+    public void getGZHOpenUserId() throws UnsupportedEncodingException {
+        String url = "";
+        QueryWrapper<GzhOpenUser> queryWrapper = new QueryWrapper<>();
+        queryWrapper.isNotNull("next_openid");
+        queryWrapper.orderByDesc("id");
+        queryWrapper.last("LIMIT 1");
+        GzhOpenUser user = gzhOpenUserService.selectOne(queryWrapper);
+        if (!ObjectUtils.isEmpty(user) && !ObjectUtils.isEmpty(user.getNextOpenid())){
+            url = "https://api.weixin.qq.com/cgi-bin/user/get?access_token=" + ACCESS_TOKEN+"next_openid="+user.getNextOpenid();
+        }else {
+            url = "https://api.weixin.qq.com/cgi-bin/user/get?access_token=" + ACCESS_TOKEN;
+        }
+//        url = "https://api.weixin.qq.com/cgi-bin/user/get?access_token=" + ACCESS_TOKEN;
+
+          //获取所有用户列表的接口
+            String openList = HttpUtil.get(url);
+            if (ObjectUtils.isEmpty(openList)){
+                log.error("微信接口返回null");
+                return;
+            }
+            Map map = JSON.parseObject(openList, Map.class);
+            String errmsg =(String) map.get("errmsg");
+            if (!ObjectUtils.isEmpty(errmsg)){
+                log.error(errmsg);
+                return;
+            }
+            String next_openid =(String) map.get("next_openid");
+            if (ObjectUtils.isEmpty(next_openid)){
+                log.error("微信接口返回null");
+                return;
+            }
+            List<String> openIds = getOpenIdByOpenList(openList);
+            for (String openid : openIds) {
+                //获取单个用户信息的微信的接口
+                String getOpenUserInfoUrl = "https://api.weixin.qq.com/cgi-bin/user/info?access_token=" + ACCESS_TOKEN + "&openid=" + openid;
+                String openUserInfo = HttpUtil.get(getOpenUserInfoUrl);
+                GzhOpenUser gzhOpenUser = JSONObject.parseObject(openUserInfo, GzhOpenUser.class);
+                gzhOpenUser.setNextOpenid(next_openid);
+                gzhOpenUser.setNickname(URLEncoder.encode(gzhOpenUser.getNickname(), "utf-8"));
+                GzhOpenUser gzh = gzhOpenUserService.selectByOpenId(openid);
+                OpenUser dbUser = userService.selectOne(new QueryWrapper<OpenUser>().eq("open_id", openid));
+                if (!ObjectUtils.isEmpty(dbUser) && !ObjectUtils.isEmpty(gzh)){
+                    gzhOpenUser.setId(gzh.getId());
+                    gzhOpenUserService.updateById(gzhOpenUser);
+                    dbUser.setUnionId(gzhOpenUser.getUnionid());
+                    userService.updateById(dbUser);
+                }
+
+                if (ObjectUtils.isEmpty(dbUser) && !ObjectUtils.isEmpty(gzh)){
+                    gzhOpenUser.setId(gzh.getId());
+                    gzhOpenUserService.updateById(gzhOpenUser);
+                }
+
+                if (!ObjectUtils.isEmpty(dbUser) && ObjectUtils.isEmpty(gzh)){
+                    //否则我们就直接插入该用户的信息
+                    gzhOpenUserService.insert(gzhOpenUser);
+                    dbUser.setUnionId(gzhOpenUser.getUnionid());
+                    userService.updateById(dbUser);
+                }
+
+                if (ObjectUtils.isEmpty(dbUser) && ObjectUtils.isEmpty(gzh)){
+                    //否则我们就直接插入该用户的信息
+                    gzhOpenUserService.insert(gzhOpenUser);
+                }
+
+            }
+
+    }
+
+    /**
+     * 解析获取的OpenUser列表中的openid，将openid最终转换为一个String类型的字符串列表返回
+     *
+     * @param openList
+     * @return
+     */
+    private List<String> getOpenIdByOpenList(String openList) {
+        List<String> openids = new ArrayList<>();
+        String substring = openList.substring(openList.indexOf("[") + 1, openList.indexOf("]"));
+        String[] list = substring.split(",");
+        for (String str : list) {
+            openids.add(str.substring(str.indexOf("\"") + 1, str.lastIndexOf("\"")));
+        }
+        return openids;
+    }
+
+
+}

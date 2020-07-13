@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jk.kq.mapper.StatisReportMapper">
+
+    <sql id="Base_Column_List">
+        id,type,count,day,user_id,date,unit
+    </sql>
+
+    <!-- 带参数查询个人维度报告列表 -->
+    <select id="selectPageList" resultType="com.jk.kq.entity.StatisReport">
+        select
+            <include refid="Base_Column_List"/>
+        from statis_report where 1=1
+            <if test="count !=null and count!=''">
+            </if>
+            <if test="day !=null and day!=''">
+            </if>
+            <if test="userId !=null and userId!=''">
+            </if>
+            <if test="startDate != null">
+               and date <![CDATA[>=]]> #{startDate}
+            </if>
+            <if test="endDate != null">
+                and date <![CDATA[<=]]> #{endDate}
+            </if>
+    </select>
+
+        <!-- 导出数据 -->
+        <select id="selectExcelList" resultType="java.util.Map">
+            select
+            id,type,count,day,user_id,date,unit,'1'
+            from statis_report
+        </select>
+</mapper>
+

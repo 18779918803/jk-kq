@@ -1,0 +1,25 @@
+package com.jk.kq.service;
+
+import com.alibaba.fastjson.JSONObject;
+
+/**
+ * {{文件描述}}
+ *
+ * @author 缪隽峰
+ * @version 1.0
+ * @date 2020年05月20日
+ */
+public interface DeviceService {
+
+    void updateUser(String sn, String card, String ccid, String name, String deptid);
+
+    void updateDept(String sn, String id, String pid, String name);
+
+    void uploadInfo(String sn);
+
+    void deleteUser(String sn, String ccid);
+
+    void deleteDept(String sn, String deptid);
+
+    JSONObject updateConfig(String sn);
+}

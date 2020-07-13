@@ -1,0 +1,19 @@
+package com.jk.kq.enums;
+
+public enum ReportEnums {
+    LATE("迟到"),//不审批
+    EARLY_QUIT("早退"),//审批中
+    MISS("矿工");    //不通过
+
+
+    private String state;
+
+    ReportEnums(String state) {
+        this.state = state;
+    }
+
+    public String getStatus() {
+        return state;
+    }
+
+}

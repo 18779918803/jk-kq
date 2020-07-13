@@ -1,0 +1,96 @@
+package com.jk.api.controller;
+
+import com.jk.api.service.ApiService;
+import com.jk.api.util.SendWeChatUtil;
+import com.jk.common.annotation.KrtIgnoreAuth;
+import com.jk.common.bean.ReturnBean;
+import com.jk.kq.config.WorkTypeConfig;
+import com.jk.kq.entity.*;
+import com.jk.kq.service.IOpenUserService;
+import com.jk.kq.service.ITravelRecordService;
+import com.jk.kq.service.IWorkTypeService;
+import com.jk.sys.entity.User;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.web.bind.annotation.*;
+
+import javax.servlet.http.HttpServletRequest;
+import java.util.Date;
+import java.util.List;
+
+/**
+ * 出差申请微信小程序API接口
+ *
+ * @author 何任鹏
+ * @version 1.0
+ * @date 2020年06月01日
+ */
+@RestController
+@RequestMapping("api/wechat/kq")
+public class TravelRecordApi {
+
+    @Autowired
+    private ITravelRecordService travelRecordService;
+
+    @Autowired
+    private ApiService apiService;
+
+    @Autowired
+    private IWorkTypeService workTypeService;
+
+    @Autowired
+    private IOpenUserService openUserService;
+
+    @Autowired
+    private SendWeChatUtil sendWeChatUtil;
+
+    /**
+     * 获取所有的出差记录，可以按照月份查找
+     *
+     * @param request
+     * @param date
+     * @return
+     */
+    @KrtIgnoreAuth
+    @GetMapping("travel/list")
+    public ReturnBean list(HttpServletRequest request, @DateTimeFormat(pattern = "yyyy-MM-dd") Date date) {
+        User openUser = apiService.getOpenUser(request);
+//        List<TravelRecord> travelRecords = travelRecordService.selectByOpenUserIdAndDate(openUser.getId(), date);
+        return ReturnBean.ok();
+    }
+
+    /**
+     * 查找所有的出差记录类型
+     *
+     * @return
+     */
+    @KrtIgnoreAuth
+    @GetMapping("travel/type")
+    public ReturnBean types() {
+        List<WorkType> travelTypes = workTypeService.selectByPid(WorkTypeConfig.TRAVEL);
+        return ReturnBean.ok(travelTypes);
+    }
+
+    /**
+     * 新增用户出差申请
+     *
+     * @return
+     */
+    @KrtIgnoreAuth
+    @PostMapping("travel/insert")
+    public ReturnBean insert(HttpServletRequest request,@RequestBody TravelRecord travelRecord) {
+        User openUser = apiService.getOpenUser(request);
+//        List<OpenUser> checkList = travelRecordService.insert(openUser, travelRecord);
+//        //只有推送用户不为空的时候，才会进行推送，其他情况默认不推送
+//        if(checkList != null){
+//            List<String> gzhOpenIds = openUserService.getGzhOpenIds(checkList);
+//            for (String gzhOpenId : gzhOpenIds) {
+//                sendWeChatUtil.sendMessage(gzhOpenId,"您好，您有一个员工申请待审批!",
+//                        "出差申请", "待审批", travelRecord.getReason(),
+//                        "点击查看详情", "页面跳转路径（项目上线后填入路径）");
+//            }
+//        }
+        return ReturnBean.ok();
+    }
+
+}

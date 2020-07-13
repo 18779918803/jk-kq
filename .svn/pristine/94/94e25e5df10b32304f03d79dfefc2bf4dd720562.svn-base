@@ -1,0 +1,94 @@
+package com.jk.kq.entity.vo;
+
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.Date;
+
+
+@Data
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public class OvertimeRecordVo {
+
+    private Integer id;
+
+//    /**
+////     * user_id
+////     */
+////    private Long userId;
+
+//    /**
+//     * 姓名
+//     */
+//    private String name;
+//
+//    /**
+//     * 公司ID/部门ID
+//     */
+//    private Integer organId;
+//
+//    /**
+//     * 公司/部门
+//     */
+//    private String organ;
+
+//    /**
+//     * 加班结束时间
+//     */
+//    @DateTimeFormat(pattern = "yyyy-MM-dd")
+//    private LocalDateTime startDate;
+//
+//    /**
+//     * 加班开始时间
+//     */
+//    @DateTimeFormat(pattern = "yyyy-MM-dd")
+//    private LocalDateTime endDate;
+
+
+    @DateTimeFormat(pattern = "yyyy-MM-dd")
+    @JsonFormat(pattern="yyyy-MM-dd",timezone="GMT+8")
+    private Date date;
+
+//    /**
+//     * 加班原因
+//     */
+//    private String reason;
+
+    /**
+     * 加班时长 0.5 1
+     */
+    private BigDecimal day;
+
+//    /**
+//     * 申请状态
+//     */
+//    private Integer state;
+//
+//    /**
+//     * 申请审批完成状态
+//     */
+//    private Integer topState;
+
+    /**
+     * 加班类型
+     */
+    private Integer typeId;
+
+    /**
+     * 类型
+     */
+    private String typeName;
+
+    private Integer Pid;
+
+}

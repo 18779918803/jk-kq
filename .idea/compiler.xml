@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CompilerConfiguration">
+    <annotationProcessing>
+      <profile default="true" name="Default" enabled="true" />
+      <profile name="Maven default annotation processors profile" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <module name="jk-plugin-oauth2" />
+        <module name="jk-plugin-jpush" />
+        <module name="jk-monitor" />
+        <module name="jk-activiti" />
+        <module name="jk-sys" />
+        <module name="jk-xcx" />
+        <module name="jk-kq" />
+        <module name="jk-sw" />
+        <module name="jk-plugin-websocket" />
+        <module name="jk-plugin-ehcache" />
+        <module name="jk-plugin-redis" />
+        <module name="jk-api" />
+        <module name="jk-db" />
+        <module name="jk-plugin-wxpush" />
+        <module name="jk-web" />
+        <module name="jk-common" />
+        <module name="jk-plugin-captcha" />
+        <module name="jk-plugin-mail" />
+        <module name="jk-plugin-quartz" />
+        <module name="jk-framework" />
+        <module name="jk-plugin-file" />
+        <module name="jk-plugin-activemq" />
+        <module name="jk-gen" />
+      </profile>
+    </annotationProcessing>
+    <bytecodeTargetLevel>
+      <module name="jk" target="1.8" />
+      <module name="jk-activiti" target="1.8" />
+      <module name="jk-api" target="1.8" />
+      <module name="jk-common" target="1.8" />
+      <module name="jk-db" target="1.8" />
+      <module name="jk-framework" target="1.8" />
+      <module name="jk-gen" target="1.8" />
+      <module name="jk-kq" target="1.8" />
+      <module name="jk-monitor" target="1.8" />
+      <module name="jk-plugin-activemq" target="1.8" />
+      <module name="jk-plugin-captcha" target="1.8" />
+      <module name="jk-plugin-ehcache" target="1.8" />
+      <module name="jk-plugin-file" target="1.8" />
+      <module name="jk-plugin-jpush" target="1.8" />
+      <module name="jk-plugin-mail" target="1.8" />
+      <module name="jk-plugin-oauth2" target="1.8" />
+      <module name="jk-plugin-quartz" target="1.8" />
+      <module name="jk-plugin-redis" target="1.8" />
+      <module name="jk-plugin-websocket" target="1.8" />
+      <module name="jk-plugin-wxpush" target="1.8" />
+      <module name="jk-plugins" target="1.8" />
+      <module name="jk-sw" target="1.8" />
+      <module name="jk-sys" target="1.8" />
+      <module name="jk-web" target="1.8" />
+      <module name="jk-xcx" target="1.8" />
+    </bytecodeTargetLevel>
+  </component>
+  <component name="JavacSettings">
+    <option name="ADDITIONAL_OPTIONS_OVERRIDE">
+      <module name="jk-activiti" options="-parameters" />
+      <module name="jk-api" options="-parameters" />
+      <module name="jk-common" options="-parameters" />
+      <module name="jk-db" options="-parameters" />
+      <module name="jk-framework" options="-parameters" />
+      <module name="jk-gen" options="-parameters" />
+      <module name="jk-kq" options="-parameters" />
+      <module name="jk-monitor" options="-parameters" />
+      <module name="jk-plugin-activemq" options="-parameters" />
+      <module name="jk-plugin-captcha" options="-parameters" />
+      <module name="jk-plugin-ehcache" options="-parameters" />
+      <module name="jk-plugin-file" options="-parameters" />
+      <module name="jk-plugin-jpush" options="-parameters" />
+      <module name="jk-plugin-mail" options="-parameters" />
+      <module name="jk-plugin-oauth2" options="-parameters" />
+      <module name="jk-plugin-quartz" options="-parameters" />
+      <module name="jk-plugin-redis" options="-parameters" />
+      <module name="jk-plugin-websocket" options="-parameters" />
+      <module name="jk-plugin-wxpush" options="-parameters" />
+      <module name="jk-sw" options="-parameters" />
+      <module name="jk-sys" options="-parameters" />
+      <module name="jk-web" options="-parameters" />
+      <module name="jk-xcx" options="-parameters" />
+    </option>
+  </component>
+</project>

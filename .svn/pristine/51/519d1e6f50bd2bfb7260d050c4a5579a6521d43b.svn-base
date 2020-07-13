@@ -1,0 +1,285 @@
+package com.jk.api.controller;
+
+import com.alibaba.fastjson.JSONObject;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.jk.api.constant.WechatConst;
+import com.jk.api.enums.CheckEnums;
+import com.jk.api.service.ApiService;
+import com.jk.api.util.HttpUtil;
+import com.jk.api.util.Md5Util;
+import com.jk.api.vo.UserVo;
+import com.jk.common.annotation.KrtIgnoreAuth;
+import com.jk.common.bean.ReturnBean;
+import com.jk.common.exception.KqException;
+import com.jk.common.util.RandomUtils;
+import com.jk.kq.entity.OpenUser;
+import com.jk.kq.service.IOpenUserService;
+import com.jk.kq.service.IPositionService;
+import com.jk.sys.entity.Organ;
+import com.jk.sys.entity.Role;
+import com.jk.sys.entity.User;
+import com.jk.sys.entity.UserRole;
+import com.jk.sys.service.IOrganService;
+import com.jk.sys.service.IRoleService;
+import com.jk.sys.service.IUserRoleService;
+import com.jk.sys.service.IUserService;
+import io.swagger.annotations.ApiImplicitParam;
+import io.swagger.annotations.ApiImplicitParams;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.util.ObjectUtils;
+import org.springframework.web.bind.annotation.*;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.util.*;
+
+/**
+ * 和考勤小程序微信端登录相关的API接口
+ *
+ * @author 缪隽峰
+ * @version 1.0
+ * @date 2020年05月21日
+ */
+@Slf4j
+@Controller
+@RequestMapping("api/wechat")
+public class WechatController {
+
+    @Autowired
+    private IOpenUserService openUserService;
+
+    @Autowired
+    private ApiService apiService;
+
+    @Autowired
+    private IOrganService organService;
+
+    @Autowired
+    private IPositionService positionService;
+
+    @Autowired
+    private IUserService userService;
+
+    @Autowired
+    private IRoleService roleService;
+
+    @Autowired
+    private IUserRoleService userRoleService;
+
+
+
+    @GetMapping("auth")
+    @KrtIgnoreAuth
+    @ResponseBody
+    public void auth(HttpServletResponse response, String signature, String timestamp, String nonce, String echostr) {
+        System.out.println("signature: " + signature);
+        System.out.println("timestamp: " + timestamp);
+        System.out.println("nonce: " + nonce);
+        System.out.println("echostr: " + echostr);
+
+        PrintWriter pw = null;
+        try {
+            pw = response.getWriter();
+            pw.write(echostr);
+            pw.flush();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            pw.close();
+        }
+    }
+
+    /**
+     * 获取auth
+     * 将微信小程序端的code传入，最终返回一个thirdSession，
+     * 同时维护了OpenUser表中的数据插入和更新
+     * @param code
+     * @return
+     */
+    @PostMapping("auth")
+    @ApiImplicitParams({
+            @ApiImplicitParam(paramType = "form", dataType = "string", name = "code", value = "code", required = true)
+    })
+    @ResponseBody
+    @KrtIgnoreAuth
+    public ReturnBean auth(HttpServletRequest request, @RequestParam String code) {
+        Map<String, String> queryParas = new HashMap<>();
+        queryParas.put("appid", WechatConst.APP_ID);
+        queryParas.put("secret", WechatConst.APP_SECRET);
+        queryParas.put("grant_type", "authorization_code");
+        queryParas.put("js_code", code);
+        String result = HttpUtil.get(WechatConst.OPEN_ID_URL, queryParas);
+        JSONObject data = JSONObject.parseObject(result);
+        if (data.containsKey("openid") && data.containsKey("session_key")) {
+            String openid = data.getString("openid");
+            String sessionKey = data.getString("session_key");
+            String unionid = data.getString("unionid");
+            String thirdSession = Md5Util.execute(sessionKey + RandomUtils.getRandomStr(8) + openid);
+
+            QueryWrapper<User> queryWrapper = new QueryWrapper<>();
+            queryWrapper.eq("open_id",openid);
+            User user = userService.selectOne(queryWrapper);
+            if (ObjectUtils.isEmpty(user)) {
+                User insertUser = User.builder().openId(openid)
+                        .name("test").password("123456").username("test")
+                        .unionId(unionid).sessionKey(sessionKey).thirdSession(thirdSession).build();
+                userService.insert(insertUser);
+                request.getSession().setAttribute(thirdSession, insertUser);
+            } else {
+                user.setOpenId(openid);
+                user.setUnionId(unionid);
+                user.setSessionKey(sessionKey);
+                user.setThirdSession(thirdSession);
+                userService.updateById(user);
+            }
+            return ReturnBean.ok(thirdSession);
+        }
+        return ReturnBean.error("鉴权失败");
+    }
+
+    /**
+     * 获取userInfo,app.js -->userInfoSetInSQL
+     * @return
+     */
+    @PostMapping("userInfo")
+    @ApiImplicitParams({
+            @ApiImplicitParam(paramType = "header", name = "thirdSession", value = "thirdSession"),
+            @ApiImplicitParam(paramType = "form", dataType = "string", name = "nickName", value = "昵称", required = true),
+            @ApiImplicitParam(paramType = "form", dataType = "string", name = "avatarUrl", value = "头像", required = true),
+            @ApiImplicitParam(paramType = "form", dataType = "string", name = "gender", value = "性别", required = true),
+            @ApiImplicitParam(paramType = "form", dataType = "string", name = "province", value = "省份", required = true),
+            @ApiImplicitParam(paramType = "form", dataType = "string", name = "city", value = "城市", required = true),
+            @ApiImplicitParam(paramType = "form", dataType = "string", name = "country", value = "国家", required = true),
+            @ApiImplicitParam(paramType = "form", dataType = "string", name = "language", value = "语言", required = true)
+    })
+    @ResponseBody
+    @KrtIgnoreAuth
+    public ReturnBean userInfo(
+            HttpServletRequest request,
+            @RequestParam String nickName,
+            @RequestParam String avatarUrl,
+            @RequestParam String gender,
+            @RequestParam String province,
+            @RequestParam String city,
+            @RequestParam String country,
+            @RequestParam String language
+    ) throws KqException {
+        User openUser = apiService.getOpenUser(request);
+        if (openUser != null) {
+            User updateOpenUser = new User();
+            updateOpenUser.setId(openUser.getId());
+//            updateOpenUser.setName(URLEncoder.encode(nickName, "utf-8"));
+//            updateOpenUser.setName(nickName);
+            updateOpenUser.setAvatar(avatarUrl);
+            updateOpenUser.setSex("1".equals(gender)?2:1);
+//            updateOpenUser.setCountry(country);
+//            updateOpenUser.setProvince(province);
+//            updateOpenUser.setCity(city);
+//            updateOpenUser.setLanguage(language);
+//            updateOpenUser.setAuth(true);
+            userService.updateById(updateOpenUser);
+
+            UserVo vo = UserVo.builder()
+                    .organId(ObjectUtils.isEmpty(openUser.getOrganId())?null:openUser.getOrganId())
+                    .name(openUser.getName()).organs(organService.selectList()).roles(roleService.selectList())
+                    .state(openUser.getAuth())
+                    .build();
+
+            if (!ObjectUtils.isEmpty(openUser.getOrganId())) {
+                Organ organ = organService.selectById(openUser.getOrganId());
+                vo.setOrgan(organ.getName());
+            }else {
+                vo.setOrgan(null);
+            }
+
+            List<Role> roles = roleService.selectUserRoles(openUser.getId());
+            if (!ObjectUtils.isEmpty(roles)){
+                vo.setRole(roles.get(0).getName());
+                vo.setRoleId(roles.get(0).getId());
+            }else {
+                vo.setRole(null);
+                vo.setRoleId(null);
+            }
+            vo.setName(openUser.getName());
+            vo.setState(openUser.getAuth());
+
+            return ReturnBean.ok(vo);
+        }
+        return ReturnBean.error("用户信息更新失败");
+    }
+
+
+    /**
+     * 修改部门姓名
+     *
+     * @return
+     */
+    @PostMapping("userData")
+    @ApiImplicitParams({
+            @ApiImplicitParam(paramType = "header", name = "thirdSession", value = "thirdSession"),
+            @ApiImplicitParam(paramType = "form", dataType = "number", name = "organId", value = "机构id", required = true),
+            @ApiImplicitParam(paramType = "form", dataType = "string", name = "organ", value = "机构名称", required = true),
+            @ApiImplicitParam(paramType = "form", dataType = "number", name = "roleId", value = "职位id", required = true),
+            @ApiImplicitParam(paramType = "form", dataType = "string", name = "role", value = "职位名称", required = true),
+            @ApiImplicitParam(paramType = "form", dataType = "string", name = "name", value = "姓名", required = true)
+    })
+    @ResponseBody
+    @KrtIgnoreAuth
+    public ReturnBean userData(
+            HttpServletRequest request,
+            @RequestParam Integer organId,
+            @RequestParam String organ,
+            @RequestParam Integer roleId,
+            @RequestParam String role,
+            @RequestParam String name
+    ) throws KqException {
+        User openUser = apiService.getOpenUser(request);
+        if (openUser != null) {
+            User userDB = userService.selectById(openUser.getId());
+            if (CheckEnums.AGREE.getStatus().equals(userDB.getAuth())) {
+                return ReturnBean.error(201, "审核通过");
+            }
+            userDB.setOrganId(organId);
+            Role byId = roleService.selectById(roleId);
+            userDB.setRoles(Arrays.asList(byId));
+            Integer id = byId.getId();
+            userDB.setName(name);
+            userDB.setAuth(CheckEnums.IN_CHECK.getStatus());
+            userService.updateById(userDB);
+
+            //删除用户角色
+            userRoleService.delete(Wrappers.<UserRole>lambdaQuery().eq(UserRole::getUserId, userDB.getId()));
+            insertUserRole(userDB, Arrays.asList(byId));
+            return ReturnBean.ok();
+        }
+        return ReturnBean.error("用户信息更新失败");
+    }
+
+    /**
+     * 添加用户角色
+     *
+     * @param user    用户信息
+     * @param roleIds 用户角色ids
+     */
+    public void insertUserRole(User user, List<Role> roleIds) {
+        if (roleIds != null && roleIds.size() > 0) {
+            List<UserRole> userRoleList = new ArrayList<>();
+            for (Role role : roleIds) {
+                UserRole userRole = new UserRole();
+                userRole.setUserId(user.getId());
+                userRole.setRoleId(role.getId());
+                userRoleList.add(userRole);
+            }
+            if (userRoleList.size() > 0) {
+                userRoleService.insertBatch(userRoleList);
+            }
+        }
+    }
+}

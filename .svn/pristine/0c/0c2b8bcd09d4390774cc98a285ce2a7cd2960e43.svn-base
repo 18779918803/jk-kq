@@ -1,0 +1,30 @@
+package com.jk.db.service;
+
+import com.jk.common.base.IBaseService;
+import com.jk.common.exception.KqException;
+import com.jk.db.entity.DbApply;
+import com.jk.sys.entity.User;
+import org.activiti.engine.runtime.ProcessInstance;
+
+import javax.servlet.http.HttpServletRequest;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+
+/**
+ * 督查督办申请表服务接口层
+ *
+ * @author 刘杭
+ * @version 1.0
+ * @date 2020年06月10日
+ */
+public interface IDbApplyService extends IBaseService<DbApply> {
+
+    ProcessInstance submitApply(DbApply dbApply, String applyUserId, String key, Map objectObjectHashMap) throws KqException;
+
+    List<DbApply> findTodoTasks(String username, Map map);
+
+    void approval(Integer id, User openUser, HttpServletRequest request);
+}

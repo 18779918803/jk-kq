@@ -1,0 +1,12 @@
+package com.jk.kq.utils;
+
+public class MessageIdUtil {
+
+    /**
+     * 获取messageId
+     * @return id
+     */
+    public static String messageId(){
+        return String.valueOf(System.currentTimeMillis());
+    }
+}

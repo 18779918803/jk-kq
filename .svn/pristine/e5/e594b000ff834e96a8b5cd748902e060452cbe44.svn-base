@@ -1,0 +1,95 @@
+package com.jk.kq.service.impl;
+
+import com.jk.kq.entity.OpenUser;
+import com.jk.kq.entity.Position;
+import com.jk.kq.mapper.OpenUserMapper;
+import com.jk.kq.service.IPositionService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import com.jk.kq.entity.WriteoffRecord;
+import com.jk.kq.mapper.WriteoffRecordMapper;
+import com.jk.kq.service.IWriteoffRecordService;
+import com.jk.common.base.BaseServiceImpl;
+
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+
+
+/**
+ * 核销申请服务接口实现层
+ *
+ * @author 何任鹏
+ * @version 1.0
+ * @date 2020年06月01日
+ */
+@Service
+public class WriteoffRecordServiceImpl extends BaseServiceImpl<WriteoffRecordMapper, WriteoffRecord> implements IWriteoffRecordService {
+
+    @Autowired
+    private WriteoffRecordMapper writeoffRecordMapper;
+
+    @Autowired
+    private IPositionService positionService;
+
+    @Autowired
+    private OpenUserMapper openUserMapper;
+
+    /**
+     * 通过openUserId查找当月用户的核销申请记录
+     *
+     * @param openUserId
+     * @param date
+     * @return
+     */
+    @Override
+    public List<WriteoffRecord> selectByOpenUserIdAndDate(Long openUserId, Date date) {
+        return writeoffRecordMapper.selectByOpenUserIdAndDate(openUserId, date);
+    }
+
+    /**
+     * 新增用户核销申请
+     *
+     * @param openUser
+     * @param writeoffRecord
+     * @return 返回该申请需要推送的用户的集合
+     */
+    @Override
+    public List<OpenUser> insert(OpenUser openUser, WriteoffRecord writeoffRecord) {
+        writeoffRecord.setOpenUserId(openUser.getId());
+        writeoffRecord.setName(openUser.getName());
+        writeoffRecord.setOrganId(openUser.getOrganId());
+        writeoffRecord.setOrgan(openUser.getOrgan());
+        //查找用户的职位信息
+        Position position = positionService.selectById(openUser.getPositionId());
+        //用户的申请初始状态等于用户的职位审批等级
+        writeoffRecord.setState(position.getGrade());
+        //集团部门加班、核销一般员工呈部门负责人和分管领导审批，部门负责人呈分管领导审批
+        List<OpenUser> checkList = null;
+        if (position.getGrade() <= 1) {
+            writeoffRecord.setTopState(2);
+            //如果员工是普通员工，直接查找同部门的部门负责人进行推送
+            if (position.getGrade() == 0) {
+                //给同部门的上一级领导审批
+                checkList = openUserMapper.selectOpenUser(openUser.getOrganId(), position.getGrade() + 1);
+            } else if (position.getGrade() == 1) {
+                //如果是公司部门负责人，那么查找分管领导进行推送
+                checkList = openUserMapper.selectLeaders(openUser.getOrganId(), position.getGrade() + 1);
+            }
+            //集团分管领导不走审批
+        }
+        writeoffRecordMapper.insert(writeoffRecord);
+        return checkList;
+    }
+
+    /**
+     * 找该用户等级可以审核的核销申请
+     *
+     * @param queryMap
+     * @return
+     */
+    @Override
+    public List selectToCheck(Map queryMap) {
+        return writeoffRecordMapper.selectToCheck(queryMap);
+    }
+}

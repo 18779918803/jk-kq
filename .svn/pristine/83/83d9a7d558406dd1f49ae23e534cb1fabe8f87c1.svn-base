@@ -1,0 +1,37 @@
+package com.jk.kq.mapper;
+
+import com.jk.common.base.BaseMapper;
+import org.apache.ibatis.annotations.Mapper;
+import com.jk.kq.entity.PunchRecord;
+
+import java.util.Date;
+import java.util.List;
+
+/**
+ * 打卡记录映射层
+ *
+ * @author 何任鹏
+ * @version 1.0
+ * @date 2020年05月25日
+ */
+@Mapper
+public interface PunchRecordMapper extends BaseMapper<PunchRecord> {
+
+    /**
+     * 通过OpenUserId和当前日期查找打卡记录信息
+     *
+     * @param openUserId
+     * @param date
+     */
+    List<PunchRecord> selectByOpenUserIdAndDate(Integer openUserId, Date date);
+
+    /**
+     * 检查用户在今天是否有9点之后的打卡记录
+     *
+     * @param openUserId
+     * @param toDay
+     * @return
+     */
+    Integer checkPunch(Integer openUserId, Date toDay);
+
+}

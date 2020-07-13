@@ -1,0 +1,272 @@
+package com.jk.api.controller;
+
+import com.jk.api.dto.CheckDTO;
+import com.jk.api.enums.TypeEnums;
+import com.jk.api.service.ApiService;
+import com.jk.api.util.PushMsg;
+import com.jk.api.util.SendWeChatUtil;
+import com.jk.common.annotation.KrtIgnoreAuth;
+import com.jk.common.bean.ReturnBean;
+import com.jk.common.bean.ReturnCode;
+import com.jk.kq.common.GeneralConvertor;
+import com.jk.kq.entity.*;
+import com.jk.kq.entity.vo.LeaveRecordVO;
+import com.jk.kq.entity.vo.OvertimeRecordVo;
+import com.jk.kq.entity.vo.WriteoffRecordVo;
+import com.jk.kq.mapper.GzhOpenUserMapper;
+import com.jk.kq.service.*;
+import com.jk.kq.utils.TaskUtilService;
+import com.jk.sys.entity.User;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.ObjectUtils;
+import org.springframework.web.bind.annotation.*;
+
+import javax.servlet.http.HttpServletRequest;
+import java.util.*;
+
+/**
+ * 和领导审核相关的微信小程序API接口
+ *
+ * @author 何任鹏
+ * @version 1.0
+ * @date 2020年06月02日
+ */
+@RestController
+@RequestMapping("api/wechat/kq")
+@Slf4j
+public class CheckApi {
+
+
+    @Autowired
+    private ApiService apiService;
+
+
+    @Autowired
+    private IOvertimeRecordService overtimeRecordService;
+
+
+    @Autowired
+    private ILeaveRecordService leaveRecordService;
+
+    @Autowired
+    private IWriteoffRecordService writeoffRecordService;
+
+    @Autowired
+    private ITravelRecordService travelRecordService;
+
+    @Autowired
+    private ICheckService checkService;
+
+    @Autowired
+    private GeneralConvertor convertor;
+
+    @Autowired
+    private IWorkTypeService workTypeService;
+
+    @Autowired
+    private PushMsg pushMsg;
+
+
+    @Autowired
+    private TaskUtilService taskUtilService;
+
+
+    /**
+     * 获取所有的审核列表按照日期和搜索条件
+     *
+     * @return
+     */
+    @KrtIgnoreAuth
+    @GetMapping("record/list")
+    public ReturnBean applicationList(HttpServletRequest request, CheckDTO dto)   {
+        User openUser = apiService.getUser(request);
+        if (ObjectUtils.isEmpty(dto.getTypePId())) {
+            return ReturnBean.error(
+                    ReturnCode.INVALID_REQUEST.getCode(), "typeId为空"
+            );
+        }
+        Map<String, Object> map = new HashMap<>();
+        //查询加班
+        if (TypeEnums.LEAVE.getStatus().equals(dto.getTypePId())) {
+            map.put("type", TypeEnums.LEAVE.name().toLowerCase());
+            List<LeaveRecord> page = leaveRecordService.findTodoTasks(openUser.getUsername(), map);
+            List<LeaveRecordVO> convertor = this.convertor.convertor(page, LeaveRecordVO.class);
+            convertor.forEach(
+                    vo -> {
+                        Integer typeId = vo.getTypeId();
+                        WorkType workType = workTypeService.selectById(typeId);
+                        vo.setPid(dto.getTypePId());
+                        vo.setTypeName(workType.getName());
+                    }
+            );
+            return ReturnBean.ok(convertor);
+        } else if (TypeEnums.WRITEOFF.getStatus().equals(dto.getTypePId())) {
+            map.put("type", TypeEnums.WRITEOFF.name().toLowerCase());
+            List<WriteoffRecord> todoTasks = writeoffRecordService.findTodoTasks(openUser.getUsername(), map);
+            List<WriteoffRecordVo> convertor = this.convertor.convertor(todoTasks, WriteoffRecordVo.class);
+            convertor.forEach(
+                    vo -> {
+                        Integer typeId = vo.getTypeId();
+                        WorkType workType = workTypeService.selectById(typeId);
+                        vo.setPid(dto.getTypePId());
+                        vo.setTypeName(workType.getName());
+                    }
+            );
+            return ReturnBean.ok(convertor);
+        }else if (TypeEnums.OVERTIME.getStatus().equals(dto.getTypePId())){
+            map.put("type", TypeEnums.OVERTIME.name().toLowerCase());
+            List<OvertimeRecord> todoTasks = overtimeRecordService.findTodoTasks(openUser.getUsername(), map);
+            List<OvertimeRecordVo> convertor = this.convertor.convertor(todoTasks, OvertimeRecordVo.class);
+            convertor.forEach(
+                    vo -> {
+                        Integer typeId = vo.getTypeId();
+                        WorkType workType = workTypeService.selectById(typeId);
+                        vo.setPid(dto.getTypePId());
+                        vo.setTypeName(workType.getName());
+                    }
+            );
+            return ReturnBean.ok(convertor);
+        }
+        return ReturnBean.ok();
+
+    }
+
+    /**
+     * 获取单个记录的审批流程记录
+     *
+     * @param pid 类型id typeenums
+     * @param id  业务主键
+     * @return
+     */
+    @KrtIgnoreAuth
+    @GetMapping("check/detail")
+    public ReturnBean list(Integer pid, Integer id) {
+        if (ObjectUtils.isEmpty(pid)) {
+            return ReturnBean.error(ReturnCode.INVALID_REQUEST);
+        }
+        if (ObjectUtils.isEmpty(id)) {
+            return ReturnBean.error(ReturnCode.INVALID_REQUEST);
+        }
+        if (TypeEnums.LEAVE.getStatus().equals(pid)) {
+            LeaveRecordVO leaveRecordVO = checkService.getcurrentRecordDetail(pid, id);
+            return ReturnBean.ok(leaveRecordVO);
+        } else if (TypeEnums.WRITEOFF.getStatus().equals(pid)) {
+            WriteoffRecordVo writeOffDetail = checkService.getWriteOffDetail(pid, id);
+            return ReturnBean.ok(writeOffDetail);
+        }
+        return ReturnBean.ok();
+    }
+
+    /**
+     * 通过申请，也要推送用户，如果审批结束，推送给申请人，审批未结束，推送给下一个审批人
+     *
+     * @return
+     */
+    @KrtIgnoreAuth
+    @PostMapping("record/pass")
+    public ReturnBean pass(HttpServletRequest request, @RequestBody Map map) {
+        User user = apiService.getUser(request);
+        OpenUser openUser = apiService.getOpenUser(request);
+        Integer pid = (Integer) map.get("pid");
+        Integer id = (Integer) map.get("id");
+        if (ObjectUtils.isEmpty(map.get("id"))) {
+            log.error("id为空");
+            return ReturnBean.error(ReturnCode.INVALID_REQUEST);
+        }
+        if (ObjectUtils.isEmpty(map.get("pid"))) {
+            log.error("pid为空");
+            return ReturnBean.error(ReturnCode.INVALID_REQUEST);
+        }
+        if (TypeEnums.WRITEOFF.getStatus().equals(pid)) {
+            writeoffRecordService.approval(id, user, request);
+            WriteoffRecord writeoffRecord = writeoffRecordService.selectById(id);
+            Map<String, Integer> end = taskUtilService.isEnd(writeoffRecord.getInstanceId());
+            Integer isEnd = end.get("isEnd");
+            Integer isPass = end.get("isPass");
+            writeoffRecord.setIsPass(isPass);
+            writeoffRecord.setIsEnd(isEnd);
+            writeoffRecordService.updateById(writeoffRecord);
+            List<User> ids = apiService.nextHandel(writeoffRecord.getInstanceId());
+            pushMsg.push(ids,"核销申请","通过");
+        } else if (TypeEnums.LEAVE.getStatus().equals(pid)) {
+            leaveRecordService.approval(id, user, request);
+            LeaveRecord leaveRecord = leaveRecordService.selectById(id);
+            Map<String, Integer> end = taskUtilService.isEnd(leaveRecord.getInstanceId());
+            Integer isEnd = end.get("isEnd");
+            Integer isPass = end.get("isPass");
+            leaveRecord.setIsPass(isPass);
+            leaveRecord.setIsEnd(isEnd);
+            leaveRecordService.updateById(leaveRecord);
+            List<User> ids = apiService.nextHandel(leaveRecord.getInstanceId());
+            pushMsg.push(ids,"请假申请","通过");
+        } else if (TypeEnums.OVERTIME.getStatus().equals(pid)) {
+            overtimeRecordService.approval(id, user, request);
+            OvertimeRecord overtimeRecord = overtimeRecordService.selectById(id);
+            Map<String, Integer> end = taskUtilService.isEnd(overtimeRecord.getInstanceId());
+            Integer isEnd = end.get("isEnd");
+            Integer isPass = end.get("isPass");
+            overtimeRecord.setIsPass(isPass);
+            overtimeRecord.setIsEnd(isEnd);
+            overtimeRecordService.updateById(overtimeRecord);
+            List<User> ids = apiService.nextHandel(overtimeRecord.getInstanceId());
+            pushMsg.push(ids,"加班申请","通过");
+        }
+
+        return ReturnBean.ok();
+    }
+
+    /**
+     * 拒绝申请，也要推送用户，申请拒绝，直接结束审批流程，推送消息给申请人
+     * @return
+     */
+    @KrtIgnoreAuth
+    @PostMapping("record/reject")
+    public ReturnBean reject(HttpServletRequest request, @RequestBody Map map)   {
+        User openUser = apiService.getUser(request);
+        Integer pid = (Integer) map.get("pid");
+        Integer id = (Integer) map.get("id");
+        if (ObjectUtils.isEmpty(map.get("id"))) {
+            log.error("id为空");
+            return ReturnBean.error(ReturnCode.INVALID_REQUEST);
+        }
+        if (ObjectUtils.isEmpty(map.get("pid"))) {
+            log.error("pid为空");
+            return ReturnBean.error(ReturnCode.INVALID_REQUEST);
+        }
+        if (TypeEnums.WRITEOFF.getStatus().equals(pid)) {
+            writeoffRecordService.reject(id, openUser, request);
+            WriteoffRecord writeoffRecord = writeoffRecordService.selectById(id);
+            Map<String, Integer> end = taskUtilService.isEnd(writeoffRecord.getInstanceId());
+            Integer isEnd = end.get("isEnd");
+            Integer isPass = end.get("isPass");
+            writeoffRecord.setIsPass(isPass);
+            writeoffRecord.setIsEnd(isEnd);
+            writeoffRecordService.updateById(writeoffRecord);
+
+
+        } else if (TypeEnums.LEAVE.getStatus().equals(pid)) {
+            leaveRecordService.reject(id, openUser, request);
+            LeaveRecord leaveRecord = leaveRecordService.selectById(id);
+            Map<String, Integer> end = taskUtilService.isEnd(leaveRecord.getInstanceId());
+            Integer isEnd = end.get("isEnd");
+            Integer isPass = end.get("isPass");
+            leaveRecord.setIsPass(isPass);
+            leaveRecord.setIsEnd(isEnd);
+            leaveRecordService.updateById(leaveRecord);
+
+        } else if (TypeEnums.OVERTIME.getStatus().equals(pid)) {
+            overtimeRecordService.reject(id, openUser, request);
+            OvertimeRecord overtimeRecord = overtimeRecordService.selectById(id);
+            Map<String, Integer> end = taskUtilService.isEnd(overtimeRecord.getInstanceId());
+            Integer isEnd = end.get("isEnd");
+            Integer isPass = end.get("isPass");
+            overtimeRecord.setIsPass(isPass);
+            overtimeRecord.setIsEnd(isEnd);
+            overtimeRecordService.updateById(overtimeRecord);
+
+        }
+        return ReturnBean.ok();
+    }
+
+}

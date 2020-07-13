@@ -1,0 +1,128 @@
+package com.jk.api.service.impl;
+
+
+import com.jk.api.dto.WriteoffRecordDTO;
+import com.jk.api.service.ApiService;
+import com.jk.common.bean.ReturnBean;
+import com.jk.common.bean.ReturnCode;
+import com.jk.common.exception.KqException;
+import com.jk.kq.common.GeneralConvertor;
+import com.jk.kq.entity.OvertimeRecord;
+import com.jk.kq.entity.WorkType;
+import com.jk.kq.entity.WriteoffRecord;
+import com.jk.kq.entity.dto.OverTimeRecordDTO;
+import com.jk.kq.entity.vo.OvertimeRecordListVO;
+import com.jk.kq.entity.vo.OvertimeRecordVo;
+import com.jk.kq.entity.vo.SumVo;
+import com.jk.kq.service.IOvertimeRecordService;
+import com.jk.kq.service.IWorkTypeService;
+import com.jk.sys.entity.Organ;
+import com.jk.sys.entity.User;
+import com.jk.sys.service.IOrganService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+@Service
+public class OvertimeRecordApiServiceImpl {
+
+    @Autowired
+    private GeneralConvertor convertor;
+
+    @Autowired
+    private IWorkTypeService workTypeService;
+
+    @Autowired
+    private IOvertimeRecordService overtimeRecordService;
+    @Autowired
+    private IOrganService organService;
+
+    @Autowired
+    private ApiService apiService;
+
+
+    /**
+     * 发起加班
+     * @param openUser
+     * @param dto
+     * @throws KqException
+     */
+    @Transactional
+    public Integer addOvertime(User openUser, OverTimeRecordDTO dto) throws KqException {
+        int writeoff = apiService.selectRole(openUser.getRoles());
+        if (writeoff == 0){
+            throw new KqException(ReturnBean.error(ReturnCode.INVALID_REQUEST.getCode(),
+                    "发起申请人角色无定义"));
+        }
+        //判断当前用户的角色
+        Map<String,Object> map =new HashMap<>();
+        map.put("overtime",writeoff);
+        OvertimeRecord convertor = this.convertor.convertor(dto, OvertimeRecord.class);
+        Organ organ = organService.selectById(openUser.getOrganId());
+        convertor.setUserId(openUser.getId());
+        convertor.setName(openUser.getName());
+        convertor.setOrgan(organ.getName());
+        convertor.setOrganId(openUser.getOrganId());
+        overtimeRecordService.insert(convertor);
+        overtimeRecordService.submitApply(convertor,openUser.getName(),"overtime",map);
+        return convertor.getId();
+    }
+
+
+
+    public OvertimeRecordListVO compute(Map<Integer, List<OvertimeRecord>> input
+    ,List<OvertimeRecord> overtimeRecords){
+        //产生元素
+        input.forEach(
+                (k,v) ->{
+                    List<OvertimeRecord> arr = new ArrayList<>();
+                    for (OvertimeRecord record : overtimeRecords) {
+                        if (record.getTypeId().equals(k)){
+                            arr.add(record);
+                        }
+                    }
+                    input.put(k,arr);
+                }
+        );
+
+        List<SumVo> sum = new ArrayList<>();
+
+        for (Map.Entry<Integer, List<OvertimeRecord>> entry : input.entrySet()) {
+            Integer k = entry.getKey();
+            List<OvertimeRecord> v = entry.getValue();
+            SumVo build = SumVo.builder().typeId(k).build();
+            BigDecimal total = BigDecimal.ZERO;
+            for (OvertimeRecord record : v) {
+                BigDecimal day = record.getDay();
+                total = total.add(day);
+            }
+            build.setTypeSum(total);
+            sum.add(build);
+        }
+
+        OvertimeRecordListVO result = OvertimeRecordListVO.builder().sum(sum).build();
+
+        List<OvertimeRecordVo> convertor = this.convertor.convertor(overtimeRecords, OvertimeRecordVo.class);
+        result.setList(convertor);
+
+        for (OvertimeRecordVo vo : convertor) {
+            Integer typeId = vo.getTypeId();
+            WorkType workType = workTypeService.selectById(typeId);
+            vo.setTypeName(workType.getName());
+        }
+
+        for (SumVo vo : sum) {
+            Integer typeId = vo.getTypeId();
+            WorkType workType = workTypeService.selectById(typeId);
+            vo.setTypeName(workType.getName());
+        }
+        return result;
+    }
+
+}

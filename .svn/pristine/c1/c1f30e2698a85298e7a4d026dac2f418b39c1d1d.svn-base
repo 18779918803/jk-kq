@@ -1,0 +1,323 @@
+package com.jk.kq.controller;
+
+import cn.afterturn.easypoi.entity.vo.MapExcelConstants;
+import cn.afterturn.easypoi.entity.vo.NormalExcelConstants;
+import cn.afterturn.easypoi.excel.entity.ExportParams;
+import cn.afterturn.easypoi.excel.entity.params.ExcelExportEntity;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.jk.common.annotation.KrtLog;
+import com.jk.common.base.BaseController;
+import com.jk.common.bean.DataTable;
+import com.jk.common.bean.ReturnBean;
+import com.jk.common.exception.KqException;
+import com.jk.kq.entity.OpenUser;
+import com.jk.kq.service.IOpenUserService;
+import com.jk.kq.service.IPositionService;
+import org.apache.shiro.authz.annotation.RequiresPermissions;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.ModelMap;
+import org.springframework.util.ObjectUtils;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * 用户控制层
+ * @author 何任鹏
+ * @version 1.0
+ * @date 2020年05月26日
+ */
+@Controller
+public class OpenUserController extends BaseController {
+
+    @Autowired
+    private IOpenUserService openUserService;
+
+    @Autowired
+    private IPositionService positionService;
+//
+//    @Autowired
+//    private DeviceService deviceService;
+//
+//    @Autowired
+//    private KqClient client;
+
+    /**
+     * 用户管理页
+     *
+     * @return {@link String}
+     */
+    @RequiresPermissions("OpenUser:openUser:list")
+    @GetMapping("kq/openUser/list")
+    public String list() {
+        request.setAttribute("positions", positionService.selectList());
+        return "kq/openUser/list";
+    }
+
+    /**
+     * 用户管理
+     *
+     * @param para 搜索参数
+     * @return {@link DataTable}
+     */
+    @RequiresPermissions("OpenUser:openUser:list")
+    @PostMapping("kq/openUser/list")
+    @ResponseBody
+    public DataTable list(@RequestParam Map para) {
+        IPage page = openUserService.selectPageList(para);
+        return DataTable.ok(page);
+    }
+
+
+    /**
+     * 用户管理页
+     *
+     * @return {@link String}
+     */
+    @RequiresPermissions("OpenUser:openUser:list")
+    @GetMapping("kq/openUser/check")
+    public String check() {
+        return "kq/openUser/check";
+    }
+
+    /**
+     * 审核用户管理
+     *
+     * @param para 搜索参数
+     * @return {@link DataTable}
+     */
+    @RequiresPermissions("OpenUser:openUser:list")
+    @PostMapping("kq/openUser/check")
+    @ResponseBody
+    public DataTable check(@RequestParam Map para) {
+        IPage page = openUserService.selectPageList(para);
+        return DataTable.ok(page);
+    }
+
+    /**
+     * 新增用户页
+     *
+     * @return {@link String}
+     */
+    @RequiresPermissions("OpenUser:openUser:insert")
+    @GetMapping("kq/openUser/insert")
+    public String insert() {
+        return "kq/openUser/insert";
+    }
+
+    /**
+     * 添加用户
+     *
+     * @param openUser 用户
+     * @return {@link ReturnBean}
+     */
+    @KrtLog("添加用户")
+    @RequiresPermissions("OpenUser:openUser:insert")
+    @PostMapping("kq/openUser/insert")
+    @ResponseBody
+    public ReturnBean insert(OpenUser openUser) {
+        openUserService.insert(openUser);
+        return ReturnBean.ok();
+    }
+
+    /**
+     * 修改用户页
+     *
+     * @param id 用户id
+     * @return {@link String}
+     */
+    @RequiresPermissions("OpenUser:openUser:update")
+    @GetMapping("kq/openUser/update")
+    public String update(Integer id) {
+        OpenUser openUser = openUserService.selectById(id);
+        request.setAttribute("openUser", openUser);
+        return "kq/openUser/update";
+    }
+
+    /**
+     * 修改用户
+     *
+     * @param openUser 用户
+     * @return {@link ReturnBean}
+     */
+    @KrtLog("修改用户")
+    @RequiresPermissions("OpenUser:openUser:update")
+    @PostMapping("kq/openUser/update")
+    @ResponseBody
+    public ReturnBean update(OpenUser openUser) {
+        openUserService.updateById(openUser);
+        // 如果审核状态为1，或者修改了部门，都需要插入考勤机命令
+        if (!ObjectUtils.isEmpty(openUser.getState()) && openUser.getState().equals(1)){
+            //推送命令
+//           deviceService.updateUser(openUser);
+        }
+        if (!ObjectUtils.isEmpty(openUser.getOrganId())) {
+//            deviceService.updateUser(openUser);
+        }
+        return ReturnBean.ok();
+    }
+
+    /**
+     * 删除用户
+     *
+     * @param id 用户id
+     * @return {@link ReturnBean}
+     */
+    @KrtLog("删除用户")
+    @RequiresPermissions("OpenUser:openUser:delete")
+    @PostMapping("kq/openUser/delete")
+    @ResponseBody
+    public ReturnBean delete(Integer id) throws KqException {
+        openUserService.deleteById(id);
+//        ReturnBean clientBean = client.deleteUser(DeviceUserDTO.builder().sn("Q10193310233").ccid(id.toString()).build());
+//        if (ObjectUtils.isEmpty(clientBean)){
+//            return ReturnBean.error(ReturnCode.SERVER_ERROR);
+//        }
+        return ReturnBean.ok();
+    }
+
+    /**
+     * 批量删除用户
+     *
+     * @param ids 用户ids
+     * @return {@link ReturnBean}
+     */
+    @KrtLog("批量删除用户")
+    @RequiresPermissions("OpenUser:openUser:delete")
+    @PostMapping("kq/openUser/deleteByIds")
+    @ResponseBody
+    public ReturnBean deleteByIds(Integer[] ids) throws KqException {
+        openUserService.deleteByIds(Arrays.asList(ids));
+        for (Integer id : ids) {
+            // 改为远程调用
+//            deviceService.deleteUser("Q10193310233", id.toString());
+        }
+        return ReturnBean.ok();
+    }
+
+    /**
+     * 跳转组织管理页面
+     *
+     * @return
+     */
+    @RequiresPermissions("OpenUser:openUser:list")
+    @GetMapping("kq/openUser/organ")
+    public String organ() {
+        return "kq/openUser/organ";
+    }
+
+    /**
+     * 获取职位等级为分管领导的用户信息
+     *
+     * @return
+     */
+    @KrtLog("获取职位等级为分管领导的用户信息")
+    @RequiresPermissions("OpenUser:openUser:list")
+    @PostMapping("kq/openUser/positionUser")
+    @ResponseBody
+    public ReturnBean getUserByPosition() {
+        List<OpenUser> openUsers = openUserService.getUserByPosition();
+        return ReturnBean.ok(openUsers);
+    }
+
+    /**
+     * 插入分管领导分管的公司或部门
+     *
+     * @param openUserId
+     * @param organId
+     * @return
+     */
+    @KrtLog("插入分管领导分管的公司或部门")
+    @RequiresPermissions("OpenUser:openUser:list")
+    @PostMapping("kq/openUser/insertOrgan")
+    @ResponseBody
+    public ReturnBean insertOrgan(Integer openUserId, Integer organId) {
+        openUserService.insertOrgan(openUserId, organId);
+        return ReturnBean.ok();
+    }
+
+    /**
+     * 通过openUserId查找该分管领导下分管的公司/部门
+     *
+     * @param openUserId
+     * @return
+     */
+    @KrtLog("加载分管领导子节点的公司/部门信息")
+    @RequiresPermissions("OpenUser:openUser:list")
+    @PostMapping("kq/openUser/organ")
+    @ResponseBody
+    public ReturnBean organ(Integer openUserId) {
+        List organs = openUserService.getOrganByOpenUserId(openUserId);
+        return ReturnBean.ok(organs);
+    }
+
+    /**
+     * 删除分管领导子节点的公司/部门信息
+     *
+     * @param userOrganId
+     * @return
+     */
+    @KrtLog("删除分管领导子节点的公司/部门信息")
+    @RequiresPermissions("OpenUser:openUser:list")
+    @PostMapping("kq/openUser/deleteOrgan")
+    @ResponseBody
+    public ReturnBean deleteOrgan(Integer userOrganId) {
+        openUserService.deleteOrgan(userOrganId);
+        return ReturnBean.ok();
+    }
+
+    /**
+     * 根据部门ID查找所用用户信息
+     *
+     * @param organId
+     * @return
+     */
+    @KrtLog("查询部门的所有用户信息")
+    @RequiresPermissions("OpenUser:openUser:list")
+    @PostMapping("kq/openUser/tree")
+    @ResponseBody
+    public ReturnBean selectByOrgan(@RequestParam("organId") Integer organId) {
+        List<OpenUser> openUsers = openUserService.selectByOrganId(organId);
+        return ReturnBean.ok(openUsers);
+    }
+
+
+    /**
+     * 导出用户
+     *
+     * @param modelMap 返回模型
+     * @param para     参数
+     */
+    @KrtLog("导出用户")
+    @RequiresPermissions("OpenUser:openUser:excelOut")
+    @GetMapping("kq/openUser/excelOut")
+    public String excelOut(ModelMap modelMap, Map para) {
+        List<ExcelExportEntity> entityList = new ArrayList<>();
+        entityList.add(new ExcelExportEntity("ID", "id", 15));
+        entityList.add(new ExcelExportEntity("昵称", "nickName", 15));
+        entityList.add(new ExcelExportEntity("性别", "gender", 15));
+        entityList.add(new ExcelExportEntity("国家", "country", 15));
+        entityList.add(new ExcelExportEntity("省份", "province", 15));
+        entityList.add(new ExcelExportEntity("城市", "city", 15));
+        entityList.add(new ExcelExportEntity("语言", "language", 15));
+        entityList.add(new ExcelExportEntity("部门", "organ", 15));
+        entityList.add(new ExcelExportEntity("姓名", "name", 15));
+        entityList.add(new ExcelExportEntity("职位", "position", 15));
+        entityList.add(new ExcelExportEntity("状态", "state", 15));
+        entityList.add(new ExcelExportEntity("注册时间", "insertTime", 15));
+        entityList.add(new ExcelExportEntity("登录时间", "updateTime", 15));
+        List dataResult = openUserService.selectExcelList(para);
+        modelMap.put(MapExcelConstants.ENTITY_LIST, entityList);
+        modelMap.put(MapExcelConstants.MAP_LIST, dataResult);
+        modelMap.put(MapExcelConstants.FILE_NAME, "用户");
+        modelMap.put(NormalExcelConstants.PARAMS, new ExportParams("用户", "用户"));
+        return MapExcelConstants.EASYPOI_MAP_EXCEL_VIEW;
+    }
+}

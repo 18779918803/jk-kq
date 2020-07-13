@@ -1,0 +1,47 @@
+package com.jk.sw.service.impl;
+
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.jk.common.base.BaseServiceImpl;
+import com.jk.common.bean.PageHelper;
+import com.jk.common.bean.Query;
+import com.jk.kq.entity.OpenUser;
+import com.jk.kq.service.IOpenUserService;
+import com.jk.kq.service.IPositionService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import com.jk.sw.entity.SwProcess;
+import com.jk.sw.mapper.SwProcessMapper;
+import com.jk.sw.service.ISwProcessService;
+
+import java.util.List;
+import java.util.Map;
+
+
+/**
+ * 流程服务接口实现层
+ *
+ * @author 温龙飞
+ * @version 1.0
+ * @date 2020年06月11日
+ */
+@Service
+public class SwProcessServiceImpl extends BaseServiceImpl<SwProcessMapper, SwProcess> implements ISwProcessService {
+
+    @Autowired
+    private IPositionService positionService;
+    @Autowired
+    private IOpenUserService openUserService;
+
+    @Override
+    public IPage processApproverList(Map para) {
+        Query query = new Query(para);
+        Page page = query.getPage();
+        PageHelper.startPage(page);
+        List<OpenUser> list = openUserService.selectList(new QueryWrapper<OpenUser>().eq("position_id", 2).or()
+                .eq("position_id", 3).or().eq("position_id", 4).or().eq("position_id", 5));
+        page.setRecords(list);
+        return page;
+    }
+}

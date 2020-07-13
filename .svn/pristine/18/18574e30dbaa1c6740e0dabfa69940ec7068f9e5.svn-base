@@ -1,0 +1,76 @@
+package com.jk.kq.entity;
+
+import com.baomidou.mybatisplus.annotation.TableName;
+import com.jk.common.base.BaseEntity;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import java.util.Date;
+import org.springframework.format.annotation.DateTimeFormat;
+import java.math.BigDecimal;
+
+/**
+ * 请假申请实体类
+ *
+ * @author 何任鹏
+ * @version 1.0
+ * @date 2020年06月01日
+ */
+@Data
+@NoArgsConstructor
+@EqualsAndHashCode(callSuper = false)
+@TableName("jk_leave_record")
+public class LeaveRecord extends BaseEntity {
+
+    /**
+     * open_user_id
+     */
+    private Integer openUserId;
+
+    /**
+     * 姓名
+     */
+    private String name;
+
+    /**
+     * 公司ID/部门ID
+     */
+    private Integer organId;
+
+    /**
+     * 公司/部门
+     */
+    private String organ;
+
+    /**
+     * 请假日期
+     */
+    @DateTimeFormat(pattern = "yyyy-MM-dd")
+    private Date date;
+
+    /**
+     * 请假原因
+     */
+    private String reason;
+
+    /**
+     * 请假天数
+     */
+    private Double day;
+
+    /**
+     * 申请状态
+     */
+    private Integer state;
+
+    /**
+     * 申请审批完成状态
+     */
+    private Integer topState;
+
+    /**
+     * 请假类型
+     */
+    private Integer typeId;
+
+}

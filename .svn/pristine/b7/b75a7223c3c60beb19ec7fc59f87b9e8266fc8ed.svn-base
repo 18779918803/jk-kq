@@ -1,0 +1,118 @@
+package com.jk.api.service.impl;
+
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.jk.api.constant.ApiConst;
+import com.jk.api.enums.RoleEnums;
+import com.jk.api.service.ApiService;
+import com.jk.common.bean.ReturnBean;
+import com.jk.common.bean.ReturnCode;
+import com.jk.common.exception.KqException;
+import com.jk.common.exception.KrtException;
+import com.jk.kq.entity.OpenUser;
+import com.jk.kq.service.IOpenUserService;
+import com.jk.sys.entity.Role;
+import com.jk.sys.entity.User;
+import com.jk.sys.entity.UserRole;
+import com.jk.sys.service.IRoleService;
+import com.jk.sys.service.IUserRoleService;
+import com.jk.sys.service.IUserService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.util.ObjectUtils;
+
+import javax.servlet.http.HttpServletRequest;
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * {{文件描述}}
+ *
+ * @author 缪隽峰
+ * @version 1.0
+ * @date 2020年03月27日
+ */
+@Service
+public class ApiServiceImpl implements ApiService {
+
+    @Autowired
+    private IUserService userService;
+
+    @Autowired
+    private IUserRoleService userRoleService;
+
+    @Autowired
+    private IRoleService roleService;
+
+
+    @Override
+    public String getThirdSession(HttpServletRequest request){
+        String thirdSession = (String) request.getAttribute(ApiConst.THIRD_SESSION);
+        return thirdSession;
+    }
+
+    @Override
+    public User getOpenUser(HttpServletRequest request) throws KqException {
+        String thirdSession = (String) request.getAttribute(ApiConst.THIRD_SESSION);
+        QueryWrapper<User> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("third_session",thirdSession);
+        User user = userService.selectOne(queryWrapper);
+        if (ObjectUtils.isEmpty(user)){
+            throw new KqException(ReturnBean.error(ReturnCode.NOT_LOGIN));
+        }
+        QueryWrapper<UserRole> qu = new QueryWrapper<>();
+        qu.eq("user_id",user.getId());
+        List<UserRole> userRoles = userRoleService.selectList(qu);
+
+        List<Role> roles = new ArrayList<>();
+        for (UserRole userRole : userRoles) {
+            Integer roleId = userRole.getRoleId();
+            Role role = roleService.selectById(roleId);
+            roles.add(role);
+        }
+        user.setRoles(roles);
+        return user;
+    }
+
+    @Override
+    public String selectSession(HttpServletRequest request, String thirdSession) {
+        String session = (String) request.getSession().getAttribute(ApiConst.THIRD_SESSION);
+//        if( session == null ) {
+//            OpenUser openUser = openUserService.selectByThirdSession(thirdSession);
+//            UserCard userCard = userCardService.selectByOpenUserId(openUser.getId());
+//            if( openUser == null ){
+//                return null;
+//            }
+//            if( openUser.getState() == 1 && userCard == null ){
+//                return null;
+//            }
+//            sessionDTO = new SessionDTO();
+//            sessionDTO.setOpenUser(openUser);
+//            sessionDTO.setUserCard(userCard);
+//            request.getSession().setAttribute(thirdSession, sessionDTO);
+//        }
+//        return sessionDTO;
+        return null;
+    }
+
+    /**
+     * 返回审批等级
+     * @param roles
+     * @return
+     */
+    public int selectRole(List<Role> roles){
+        int leave = 0;
+        for (Role role : roles) {
+            if (role.getName().equals(RoleEnums.PU_TONG.getStatus())){
+                leave = 2;
+                break;
+            }
+            if (role.getName().equals(RoleEnums.DEPT_LEADER.getStatus())){
+                leave = 1;
+                break;
+            }
+        }
+        return leave;
+    }
+
+
+}

@@ -1,0 +1,173 @@
+package com.jk.kq.controller;
+
+import com.jk.common.base.BaseController;
+import org.springframework.stereotype.Controller;
+
+/**
+ * 个人维度报告控制层
+ *
+ * @author zhangwl
+ * @version 1.0
+ * @date 2020年06月18日
+ */
+@Controller
+public class StatisReportController extends BaseController {
+
+//    /**
+//     * 个人维度报告管理页
+//     *
+//     * @return {@link String}
+//     */
+//    @RequiresPermissions("report:statisReport:list")
+//    @GetMapping("kq/statisReport/list")
+//    public String list() {
+//        return "kq/statisReport/list";
+//    }
+//
+//    /**
+//     * 个人维度报告管理
+//     *
+//     * @param para 搜索参数
+//     * @return {@link DataTable}
+//     */
+//    @RequiresPermissions("report:statisReport:list")
+//    @PostMapping("kq/statisReport/list")
+//    @ResponseBody
+//    public DataTable list(@RequestParam Map para) {
+//
+//        IPage page = statisReportService.selectPageList(para);
+//        return DataTable.ok(page);
+//    }
+//
+//    /**
+//     * 新增个人维度报告页
+//     *
+//     * @return {@link String}
+//     */
+//    @RequiresPermissions("report:statisReport:insert")
+//    @GetMapping("kq/statisReport/insert")
+//    public String insert() {
+//        return "kq/statisReport/insert";
+//    }
+//
+//    /**
+//     * 添加个人维度报告
+//     *
+//     * @param statisReport 个人维度报告
+//     * @return {@link ReturnBean}
+//     */
+//    @KrtLog("添加个人维度报告")
+//    @RequiresPermissions("report:statisReport:insert")
+//    @PostMapping("kq/statisReport/insert")
+//    @ResponseBody
+//    public ReturnBean insert(StatisReport statisReport) {
+//        statisReportService.insert(statisReport);
+//        return ReturnBean.ok();
+//    }
+//
+//    /**
+//     * 修改个人维度报告页
+//     *
+//     * @param id 个人维度报告id
+//     * @return {@link String}
+//     */
+//    @RequiresPermissions("report:statisReport:update")
+//    @GetMapping("kq/statisReport/update")
+//    public String update(Integer id) {
+//        StatisReport statisReport = statisReportService.selectById(id);
+//        request.setAttribute("statisReport", statisReport);
+//        return "kq/statisReport/update";
+//    }
+//
+//    /**
+//     * 修改个人维度报告
+//     *
+//     * @param statisReport 个人维度报告
+//     * @return {@link ReturnBean}
+//     */
+//    @KrtLog("修改个人维度报告")
+//    @RequiresPermissions("report:statisReport:update")
+//    @PostMapping("kq/statisReport/update")
+//    @ResponseBody
+//    public ReturnBean update(StatisReport statisReport) {
+//        statisReportService.updateById(statisReport);
+//        return ReturnBean.ok();
+//    }
+//
+//    /**
+//     * 删除个人维度报告
+//     *
+//     * @param id 个人维度报告id
+//     * @return {@link ReturnBean}
+//     */
+//    @KrtLog("删除个人维度报告")
+//    @RequiresPermissions("report:statisReport:delete")
+//    @PostMapping("kq/statisReport/delete")
+//    @ResponseBody
+//    public ReturnBean delete(Integer id)   {
+//        statisReportService.deleteById(id);
+//        return ReturnBean.ok();
+//    }
+//
+//    /**
+//     * 批量删除个人维度报告
+//     *
+//     * @param ids 个人维度报告ids
+//     * @return {@link ReturnBean}
+//     */
+//    @KrtLog("批量删除个人维度报告")
+//    @RequiresPermissions("report:statisReport:delete")
+//    @PostMapping("kq/statisReport/deleteByIds")
+//    @ResponseBody
+//    public ReturnBean deleteByIds(Integer[] ids)   {
+//        statisReportService.deleteByIds(Arrays.asList(ids));
+//        return ReturnBean.ok();
+//    }
+//
+//        /**
+//        * 导入个人维度报告
+//        *
+//        * @param file excel文件
+//        * @throws Exception 异常
+//        */
+//        @KrtLog("导入个人维度报告")
+//        @RequiresPermissions("report:statisReport:excelIn")
+//        @PostMapping("kq/statisReport/excelIn")
+//        public void excelIn(@RequestParam("file") MultipartFile file) throws Exception {
+//            Assert.isExcel(file);
+//            ImportParams params = new ImportParams();
+//            params.setTitleRows(1);
+//            params.setHeadRows(1);
+//            params.setNeedSave(false);
+//            //读取excel
+//            List<StatisReport> dataList = ExcelImportUtil.importExcel(file.getInputStream(), StatisReport.class, params);
+//            statisReportService.insertBatch(dataList);
+//            ServletUtils.printText(response, JSON.toJSONString(ReturnBean.ok()));
+//        }
+//
+//        /**
+//        * 导出个人维度报告
+//        *
+//        * @param modelMap 返回模型
+//        * @param para 参数
+//        */
+//        @KrtLog("导出个人维度报告")
+//        @RequiresPermissions("report:statisReport:excelOut")
+//        @GetMapping("kq/statisReport/excelOut")
+//        public String excelOut(ModelMap modelMap,Map para) {
+//            List<ExcelExportEntity> entityList = new ArrayList<>();
+//                entityList.add(new ExcelExportEntity("id", "id", 15));
+//                entityList.add(new ExcelExportEntity("迟到、早退、矿工", "type", 15));
+//                entityList.add(new ExcelExportEntity("时间，支持小数，小时为单位", "count", 15));
+//                entityList.add(new ExcelExportEntity("以天计算，通过count小时换算，换算规则在文档中", "day", 15));
+//                entityList.add(new ExcelExportEntity("user_id", "userId", 15));
+//                entityList.add(new ExcelExportEntity("结束时间", "date", 15));
+//                entityList.add(new ExcelExportEntity("日 月 年", "unit", 15));
+//            List dataResult = statisReportService.selectExcelList(para);
+//            modelMap.put(MapExcelConstants.ENTITY_LIST, entityList);
+//            modelMap.put(MapExcelConstants.MAP_LIST, dataResult);
+//            modelMap.put(MapExcelConstants.FILE_NAME, "个人维度报告");
+//            modelMap.put(NormalExcelConstants.PARAMS, new ExportParams("个人维度报告", "个人维度报告"));
+//            return MapExcelConstants.EASYPOI_MAP_EXCEL_VIEW;
+//        }
+}

@@ -1,0 +1,314 @@
+package com.jk.db.controller;
+
+import cn.afterturn.easypoi.excel.ExcelExportUtil;
+import cn.afterturn.easypoi.excel.entity.TemplateExportParams;
+import com.alibaba.fastjson.JSONObject;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+
+import com.jk.common.annotation.KrtLog;
+import com.jk.common.base.BaseController;
+import com.jk.common.bean.DataTable;
+import com.jk.common.bean.ReturnBean;
+import com.jk.common.util.ShiroUtils;
+import com.jk.db.entity.DbApply;
+import com.jk.db.service.IDbApplyService;
+import com.jk.sys.entity.User;
+import com.jk.sys.service.IOrganService;
+import com.jk.sys.service.IUserService;
+import org.activiti.engine.TaskService;
+import org.activiti.engine.impl.persistence.entity.TaskEntityImpl;
+import org.activiti.engine.task.Task;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.shiro.authz.annotation.RequiresPermissions;
+import org.springframework.stereotype.Controller;
+import org.springframework.util.CollectionUtils;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.beans.factory.annotation.Autowired;
+
+import javax.validation.constraints.NotBlank;
+import java.io.IOException;
+import java.net.URLEncoder;
+import java.util.*;
+
+/**
+ * 督查督办申请表控制层
+ *
+ * @author 刘杭
+ * @version 1.0
+ * @date 2020年06月10日
+ */
+@Controller
+public class DbApplyController extends BaseController {
+
+    @Autowired
+    private IDbApplyService dbApplyService;
+
+    @Autowired
+    private IUserService userService;
+
+    @Autowired
+    private TaskService taskService;
+
+    @Autowired
+    private IOrganService organService;
+
+    /**
+     * 督查督办申请表管理页
+     *
+     * @return {@link String}
+     */
+    @RequiresPermissions("dbApply:dbApply:list")
+    @GetMapping("db/dbApply/list")
+    public String list() {
+        request.setAttribute("currentUser", ShiroUtils.getSessionUser());
+        return "db/dbApply/list";
+    }
+
+    /**
+     * 督查督办申请表管理
+     *
+     * @param para 搜索参数
+     * @return {@link DataTable}
+     */
+    @RequiresPermissions("dbApply:dbApply:list")
+    @PostMapping("db/dbApply/list")
+    @ResponseBody
+    public DataTable list(@RequestParam Map para) {
+        if (!ShiroUtils.getSessionUser().isAdmin()) {
+            para.put("createBy", ShiroUtils.getSessionUser().getUsername());
+        }
+        para.put("type", "dbapply");
+        IPage page = dbApplyService.selectPageMap(para);
+        List<Map> dbApplies = page.getRecords();
+        for (Map  map : dbApplies) {
+
+            Integer userId = userService.getUserId(map.get("createBy").toString());
+            User sysUser = userService.selectById(userId);
+            if (sysUser != null) {
+                //dbApply.setCreateUserName(sysUser.getName());
+                map.put("createUserName",sysUser.getName());
+            }
+            Integer userId2 = null;
+//            //dbApply.getApplyUser()
+            if(map.get("applyUser")!=null){
+                userId2 = userService.getUserId(map.get("applyUser").toString());
+            }
+
+            User sysUser2 = userService.selectById(userId2);
+//            SysUser sysUser2 = userMapper.selectUserByLoginName(leave.getApplyUser());
+            if (sysUser2 != null) {
+//                dbApply.setApplyUserName(sysUser2.getName());
+                map.put("applyUserName",sysUser2.getName());
+            }
+            // 当前环节
+            if (map.get("instanceId")!=null) {
+                List<Task> taskList = taskService.createTaskQuery()
+                        .processInstanceId(map.get("instanceId").toString())
+//                        .singleResult();
+                        .list();    // 例如请假会签，会同时拥有多个任务
+                if (!CollectionUtils.isEmpty(taskList)) {
+                    TaskEntityImpl task = (TaskEntityImpl) taskList.get(0);
+//                    dbApply.setTaskId(task.getId());
+                    map.put("taskId",task.getId());
+                    if (task.getSuspensionState() == 2) {
+//                        dbApply.setTaskName("已挂起");
+                        map.put("taskName","已挂起");
+//                        dbApply.setSuspendState("2");
+                        map.put("suspendState","2");
+                    } else {
+//                        dbApply.setTaskName(task.getName());
+                        map.put("taskName",task.getName());
+//                        dbApply.setSuspendState("1");
+                        map.put("suspendState","1");
+                    }
+                } else {
+                    // 已办结或者已撤销
+//                    dbApply.setTaskName("已结束");
+                    map.put("taskName","已结束");
+                }
+            } else {
+//                dbApply.setTaskName("未启动");
+                map.put("taskName","未启动");
+            }
+        }
+        page.setRecords(dbApplies);
+        return DataTable.ok(page);
+    }
+
+    /**
+     * 新增督查督办申请表页
+     *
+     * @return {@link String}
+     */
+    @RequiresPermissions("dbApply:dbApply:insert")
+    @GetMapping("db/dbApply/insert")
+    public String insert() {
+        return "db/dbApply/insert";
+    }
+
+    /**
+     * 添加督查督办申请表
+     *
+     * @param dbApply 督查督办申请表
+     * @return {@link ReturnBean}
+     */
+    @KrtLog("添加督查督办申请表")
+    @RequiresPermissions("dbApply:dbApply:insert")
+    @PostMapping("db/dbApply/insert")
+    @ResponseBody
+    public ReturnBean insert(DbApply dbApply) {
+        dbApply.setCreateBy(ShiroUtils.getSessionUser().getUsername());
+        dbApply.setStatus(1);
+        dbApply.setLeadDepartment(organService.selectById(dbApply.getLeadDepartmentId()).getName());
+        dbApply.setResponsibilityDepartment(organService.selectById(dbApply.getResponsibilityDepartmentId()).getName());
+        dbApplyService.insert(dbApply);
+        return ReturnBean.ok();
+    }
+
+    /**
+     * 修改督查督办申请表页
+     *
+     * @param id 督查督办申请表id
+     * @return {@link String}
+     */
+    @RequiresPermissions("dbApply:dbApply:update")
+    @GetMapping("db/dbApply/update")
+    public String update(Integer id) {
+        DbApply dbApply = dbApplyService.selectById(id);
+        dbApply.setLeadDepartment(organService.selectById(dbApply.getLeadDepartmentId()).getName());
+        dbApply.setResponsibilityDepartment(organService.selectById(dbApply.getResponsibilityDepartmentId()).getName());
+        request.setAttribute("dbApply", dbApply);
+        return "db/dbApply/update";
+    }
+
+    /**
+     * 修改督查督办申请表
+     *
+     * @param dbApply 督查督办申请表
+     * @return {@link ReturnBean}
+     */
+    @KrtLog("修改督查督办申请表")
+    @RequiresPermissions("dbApply:dbApply:update")
+    @PostMapping("db/dbApply/update")
+    @ResponseBody
+    public ReturnBean update(DbApply dbApply) {
+        dbApply.setLeadDepartment(organService.selectById(dbApply.getLeadDepartmentId()).getName());
+        dbApply.setResponsibilityDepartment(organService.selectById(dbApply.getResponsibilityDepartmentId()).getName());
+        dbApplyService.updateById(dbApply);
+        return ReturnBean.ok();
+    }
+
+    /**
+     * 删除督查督办申请表
+     *
+     * @param id 督查督办申请表id
+     * @return {@link ReturnBean}
+     */
+    @KrtLog("删除督查督办申请表")
+    @RequiresPermissions("dbApply:dbApply:delete")
+    @PostMapping("db/dbApply/delete")
+    @ResponseBody
+    public ReturnBean delete(Integer id) {
+        dbApplyService.deleteById(id);
+        return ReturnBean.ok();
+    }
+
+    /**
+     * 批量删除督查督办申请表
+     *
+     * @param ids 督查督办申请表ids
+     * @return {@link ReturnBean}
+     */
+    @KrtLog("批量删除督查督办申请表")
+    @RequiresPermissions("dbApply:dbApply:delete")
+    @PostMapping("db/dbApply/deleteByIds")
+    @ResponseBody
+    public ReturnBean deleteByIds(Integer[] ids) {
+        dbApplyService.deleteByIds(Arrays.asList(ids));
+        return ReturnBean.ok();
+    }
+
+    /**
+     * 导出督查督办申请表
+     *
+     * @param id 选中id
+     */
+    @KrtLog("导出督查督办申请表")
+    @RequiresPermissions("dbApply:dbApply:excelOut")
+    @GetMapping("db/dbApply/excelOut")
+    @ResponseBody
+    public String excelOut(Integer id) throws IOException {
+        JSONObject retval = new JSONObject();
+        TemplateExportParams params = new TemplateExportParams("excel/db/db.xlsx");
+        params.setSheetName("建控集团督查督办事项立项表");
+        Map map = new HashMap<>();
+        DbApply outExcel = dbApplyService.selectById(id);
+        ArrayList<DbApply> dbApplies = new ArrayList<>();
+        dbApplies.add(outExcel);
+        map.put("dbList", dbApplies);
+        map.put("title", "建控集团督查督办事项立项表");
+        Workbook workbook = ExcelExportUtil.exportExcel(params, map);
+        Sheet sheet = workbook.getSheetAt(0);
+        // 替换title
+        // 下载
+        response.setCharacterEncoding("UTF-8");
+        response.setHeader("content-Type", "application/vnd.ms-excel");
+        response.setHeader("Content-Disposition", "attachment;filename=" + URLEncoder.encode("建控集团督查督办事项立项表.xlsx", "UTF-8"));
+        workbook.write(response.getOutputStream());
+        return retval.toString();
+    }
+
+
+    /**
+     * 延期
+     *
+     * @param
+     */
+    @KrtLog("延期")
+    @RequiresPermissions("dbApply:dbApply:delayBtn")
+    @GetMapping("db/dbApply/delay")
+    public String delay(Integer id) throws IOException {
+        DbApply dbApply = dbApplyService.selectById(id);
+        dbApply.setStatus(2);
+        dbApplyService.updateById(dbApply);
+        request.setAttribute("id",id);
+        return "db/dbApply/delay";
+    }
+
+    /**
+     * 撤销
+     *
+     * @param
+     */
+    @KrtLog("撤销")
+    @RequiresPermissions("dbApply:dbApply:cancel")
+    @GetMapping("db/dbApply/cancel")
+    public String cancelBtn(Integer id) throws IOException {
+        DbApply dbApply = dbApplyService.selectById(id);
+        dbApply.setStatus(3);
+        dbApplyService.updateById(dbApply);
+        request.setAttribute("id",id);
+        return "db/dbApply/cancel";
+    }
+
+    /**
+     * 提交申请
+     */
+    @KrtLog("提交申请")
+    @PostMapping("db/dbApply/submitApply")
+    @ResponseBody
+    public ReturnBean submitApply(Long id)   {
+        DbApply dbApply = dbApplyService.selectById(id);
+        String applyUserId = ShiroUtils.getSessionUser().getName();
+        boolean admin = ShiroUtils.getSessionUser().isAdmin();
+        if(admin){
+            return ReturnBean.error("管理员不能提交审批");
+        }
+        dbApplyService.submitApply(dbApply, applyUserId, "dbapply", new HashMap<String,Object>());
+        return ReturnBean.ok();
+    }
+}

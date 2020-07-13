@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jk.db.mapper.DbApplyMapper">
+
+    <sql id="Base_Column_List">
+        db_type,db_id,db_source,db_lw_date,db_lw_content,db_content_brief,db_ask_finaltime,db_level,lead_department,responsibility_department,department_principal,charge_lead,manager_advice,inserter,insert_time,updater,update_time,id,president_advice,status
+    </sql>
+
+    <!-- 带参数查询督查督办申请表列表 -->
+    <select id="selectPageList" resultType="com.jk.db.entity.DbApply">
+        select
+            <include refid="Base_Column_List"/>
+        from db_apply where 1=1
+            <if test="dbType !=null and dbType!=''">
+                        and db_type = #{dbType}
+            </if>
+            <if test="dbId !=null and dbId!=''">
+                        and db_id = #{dbId}
+            </if>
+            <if test="dbAskFinaltime !=null and dbAskFinaltime!=''">
+                    <![CDATA[ and db_ask_finaltime <= #{dbAskFinaltime} ]]>
+            </if>
+    </select>
+
+</mapper>
+

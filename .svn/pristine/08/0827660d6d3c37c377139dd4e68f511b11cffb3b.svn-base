@@ -1,0 +1,132 @@
+package com.jk.kq.service.impl;
+
+
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.jk.kq.entity.PunchRecord;
+import com.jk.kq.entity.StatisReport;
+import com.jk.kq.enums.ReportEnums;
+import com.jk.kq.service.IPunchRecordService;
+import com.jk.kq.service.IStatisReportService;
+import com.jk.kq.utils.DateUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.util.ObjectUtils;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
+
+@Service
+public class ReportServiceImpl {
+
+    @Autowired
+    private IPunchRecordService recordService;
+
+    @Autowired
+    private IStatisReportService reportService;
+
+
+    /**
+     * 第二天 凌晨2点执行
+     */
+    public void report(){
+
+        Map<Integer,List<PunchRecord>> todayMap = new HashMap<>();
+        LocalDateTime normal = LocalDateTime.now().plusDays(-1);
+        LocalDateTime today_start = LocalDateTime.of(normal.toLocalDate(), LocalTime.MIN);//当天零点
+        LocalDateTime today_end = LocalDateTime.of(normal.toLocalDate(), LocalTime.MAX);//当天零点
+        QueryWrapper<PunchRecord> queryWrapper = new QueryWrapper<>();
+        queryWrapper.ge("punch_time", today_start);
+        queryWrapper.le("punch_time", today_end);
+        List<PunchRecord> punchRecords = recordService.selectList(queryWrapper);
+        for (PunchRecord punchRecord : punchRecords) {
+            if (!todayMap.containsKey(punchRecord.getOpenUserId())){
+                todayMap.put(punchRecord.getOpenUserId(),null);
+            }
+        }
+
+        //产生元素
+        todayMap.forEach(
+                (k,v) ->{
+                    List<PunchRecord> arr = new ArrayList<>();
+                    for (PunchRecord punchRecord : punchRecords) {
+                        if (punchRecord.getOpenUserId().equals(k)){
+                            arr.add(punchRecord);
+                        }
+                    }
+                    todayMap.put(k,arr);
+                }
+        );
+
+
+        //倒序排序
+        todayMap.forEach(
+                (k,v) -> v.sort((o1, o2) -> Long.compare(o2.getPunchTime().getTime(), o1.getPunchTime().getTime()))
+        );
+        for (Map.Entry<Integer, List<PunchRecord>> entry : todayMap.entrySet()) {
+            Integer k = entry.getKey();
+            List<PunchRecord> v = entry.getValue();
+            if (ObjectUtils.isEmpty(v) || v.size() == 1) {
+                //矿工 小时和天数不算
+                reportService.insert(StatisReport.builder()
+                        .type(ReportEnums.QUIT.name().toLowerCase())
+                        .date(DateUtils.localDate2Date(today_start.toLocalDate()))
+                        .userId(k).unit("1").build());
+                continue;
+            }
+            if (v.size() > 1) {
+                //迟到、
+                if (v.get(v.size() - 1).getPunchTime().getTime() > DateUtils.getDay(8, 30).getTime()) {
+                    reportService.insert(StatisReport.builder()
+                            .type(ReportEnums.LATE.name().toLowerCase())
+                            .date(DateUtils.localDate2Date(today_start.toLocalDate()))
+                            .userId(k).unit("1").build());
+                    continue;
+                }
+                //早退
+                if (v.get(0).getPunchTime().getTime() < DateUtils.getDay(17, 30).getTime()) {
+                    reportService.insert(StatisReport.builder()
+                            .type(ReportEnums.EARLY_QUIT.getStatus())
+                            .date(DateUtils.localDate2Date(today_start.toLocalDate())).userId(k).unit("1").build());
+                }
+                if (v.get(0).getPunchTime().getTime() >= DateUtils.getDay(17, 30).getTime()
+                &&v.get(v.size() - 1).getPunchTime().getTime() <= DateUtils.getDay(8, 30).getTime()){
+                    reportService.insert(StatisReport.builder()
+                            .type(ReportEnums.NORMAL.getStatus())
+                            .date(DateUtils.localDate2Date(today_start.toLocalDate())).userId(k).unit("1").build());
+                }
+
+            }
+        }
+        System.out.println(todayMap);
+    }
+
+
+
+    /**
+     * 检查矿工,true为无矿工
+     * @return
+     */
+    private boolean checkFree(List<PunchRecord> input){
+        boolean mon = false,noon =false;
+        long start = DateUtils.getDay(8,30).getTime();
+        long monEnd = DateUtils.getDay(12,0).getTime();
+        long noonStart = DateUtils.getDay(14,30).getTime();
+        long noonEnd = DateUtils.getDay(17,30).getTime();
+        for (PunchRecord punchRecord : input) {
+            if (start <= punchRecord.getPunchTime().getTime() && punchRecord.getPunchTime().getTime() <= monEnd){
+                mon = true;
+            }
+            if (noonStart <= punchRecord.getPunchTime().getTime() && punchRecord.getPunchTime().getTime() <= noonEnd){
+                noon = true;
+            }
+            if (punchRecord.getPunchTime().getTime() >noonEnd ){
+                noon = true;
+            }
+        }
+        return mon && noon;
+    }
+
+}

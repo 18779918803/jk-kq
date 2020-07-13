@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jk.kq.mapper.ClockMapper">
+
+    <sql id="Base_Column_List">
+        id,user_id,device_id,time,way,state,type,inserter,insert_time,updater,update_time
+    </sql>
+
+    <!-- 带参数查询打卡记录列表 -->
+    <select id="selectPageList" resultType="java.util.Map">
+        select
+        r.id,r.open_user_id,u.name,r.device_id,r.organ_id,r.organ,r.punch_time,r.punch_state
+        from jk_punch_record r
+        left join jk_open_user u on r.open_user_id = u.id where 1=1
+        <if test="name !=null and name!=''">
+            and u.name like concat('%',#{name},'%')
+        </if>
+        <if test="deviceId !=null and deviceId!=''">
+            and r.device_id = #{deviceId}
+        </if>
+        <if test="organId !=null and organId!=''">
+            and r.organ_id = #{organId}
+        </if>
+        <if test="startDate != null and startDate != '' or endDate == null and endDate == ''">
+            and date(r.punch_time) &gt;= #{startDate}
+        </if>
+        <if test="endDate != null and endDate != '' or startDate == null and startDate == ''">
+            and date(r.punch_time) &lt;= #{endDate}
+        </if>
+        <if test="startDate != null and startDate != '' and endDate != null and endDate != ''">
+            and date(r.punch_time) between #{startDate} and #{endDate}
+        </if>
+        <if test="punchState !=null and punchState!=''">
+            and r.punch_state = #{punchState}
+        </if>
+    </select>
+
+    <!-- 导出数据 -->
+    <select id="selectExcelList" resultType="java.util.Map">
+        select
+        id,open_user_id,device_id,organ,punch_time,punch_state,'1'
+        from jk_punch_record
+    </select>
+
+    <!--通过OpenUserId和当前日期查找打卡记录信息-->
+    <select id="selectClock" resultType="java.util.Map">
+        select
+          date_format(time, '%H:%i') as time, way, type, state
+        from jk_clock
+        where 1 = 1
+        and user_id = #{userId}
+        and date_format(time, '%Y-%m-%d') = #{date}
+        order by time asc
+    </select>
+
+    <select id="selectStatus" resultType="java.util.Map">
+        select
+          date_format(time, '%Y-%m-%d') as time, state
+        from jk_clock
+        where 1 = 1
+        and user_id = #{userId}
+        and date_format(time, '%Y-%m-%d') >= date_add(#{date}, interval - day(#{date}) + 1 day)
+        and last_day(#{date}) >= date_format(time, '%Y-%m-%d')
+        order by time asc
+    </select>
+
+    <!--检查用户在今天是否有9点之后的打卡记录-->
+    <select id="checkPunch" resultType="java.lang.Integer">
+        select count(*) from jk_punch_record where open_user_id = #{openUserId} and punch_time > date_format(#{toDay},"%Y-%m-%d 21:00:00")
+    </select>
+
+    
+    
+</mapper>
+

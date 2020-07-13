@@ -1,0 +1,145 @@
+package com.jk.kq.controller;
+
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.jk.common.annotation.KrtLog;
+import com.jk.common.base.BaseController;
+import com.jk.common.bean.DataTable;
+import com.jk.common.bean.ReturnBean;
+import com.jk.common.exception.KqException;
+import com.jk.kq.entity.DeviceInfo;
+import com.jk.kq.service.IDeviceInfoService;
+import org.apache.shiro.authz.annotation.RequiresPermissions;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.beans.factory.annotation.Autowired;
+import java.util.Arrays;
+import java.util.Map;
+
+/**
+ * 设备控制层
+ *
+ * @author 何任鹏
+ * @version 1.0
+ * @date 2020年05月25日
+ */
+@Controller
+public class DeviceInfoController extends BaseController {
+
+    @Autowired
+    private IDeviceInfoService deviceInfoService;
+
+    /**
+     * 设备管理页
+     *
+     * @return {@link String}
+     */
+    @RequiresPermissions("DeviceInfo:deviceInfo:list")
+    @GetMapping("kq/deviceInfo/list")
+    public String list() {
+        return "kq/deviceInfo/list";
+    }
+
+    /**
+     * 设备管理
+     *
+     * @param para 搜索参数
+     * @return {@link DataTable}
+     */
+    @RequiresPermissions("DeviceInfo:deviceInfo:list")
+    @PostMapping("kq/deviceInfo/list")
+    @ResponseBody
+    public DataTable list(@RequestParam Map para) {
+        IPage page = deviceInfoService.selectPageList(para);
+        return DataTable.ok(page);
+    }
+
+    /**
+     * 新增设备页
+     *
+     * @return {@link String}
+     */
+    @RequiresPermissions("DeviceInfo:deviceInfo:insert")
+    @GetMapping("kq/deviceInfo/insert")
+    public String insert() {
+        return "kq/deviceInfo/insert";
+    }
+
+    /**
+     * 添加设备
+     *
+     * @param deviceInfo 设备
+     * @return {@link ReturnBean}
+     */
+    @KrtLog("添加设备")
+    @RequiresPermissions("DeviceInfo:deviceInfo:insert")
+    @PostMapping("kq/deviceInfo/insert")
+    @ResponseBody
+    public ReturnBean insert(DeviceInfo deviceInfo) {
+        deviceInfoService.insert(deviceInfo);
+        return ReturnBean.ok();
+    }
+
+    /**
+     * 修改设备页
+     *
+     * @param id 设备id
+     * @return {@link String}
+     */
+    @RequiresPermissions("DeviceInfo:deviceInfo:update")
+    @GetMapping("kq/deviceInfo/update")
+    public String update(Integer id) {
+        DeviceInfo deviceInfo = deviceInfoService.selectById(id);
+        request.setAttribute("deviceInfo", deviceInfo);
+        return "kq/deviceInfo/update";
+    }
+
+    /**
+     * 修改设备
+     *
+     * @param deviceInfo 设备
+     * @return {@link ReturnBean}
+     */
+    @KrtLog("修改设备")
+    @RequiresPermissions("DeviceInfo:deviceInfo:update")
+    @PostMapping("kq/deviceInfo/update")
+    @ResponseBody
+    public ReturnBean update(DeviceInfo deviceInfo) {
+        deviceInfoService.updateById(deviceInfo);
+        return ReturnBean.ok();
+    }
+
+    /**
+     * 删除设备
+     *
+     * @param id 设备id
+     * @return {@link ReturnBean}
+     */
+    @KrtLog("删除设备")
+    @RequiresPermissions("DeviceInfo:deviceInfo:delete")
+    @PostMapping("kq/deviceInfo/delete")
+    @ResponseBody
+    public ReturnBean delete(Integer id) throws KqException {
+        deviceInfoService.deleteById(id);
+        return ReturnBean.ok();
+    }
+
+    /**
+     * 批量删除设备
+     *
+     * @param ids 设备ids
+     * @return {@link ReturnBean}
+     */
+    @KrtLog("批量删除设备")
+    @RequiresPermissions("DeviceInfo:deviceInfo:delete")
+    @PostMapping("kq/deviceInfo/deleteByIds")
+    @ResponseBody
+    public ReturnBean deleteByIds(Integer[] ids) throws KqException {
+        deviceInfoService.deleteByIds(Arrays.asList(ids));
+        return ReturnBean.ok();
+    }
+
+
+}

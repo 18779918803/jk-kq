@@ -1,0 +1,251 @@
+package com.jk.api.controller;
+
+import com.alibaba.fastjson.JSONObject;
+import com.jk.api.constant.WechatConst;
+import com.jk.api.dto.SessionDTO;
+import com.jk.api.service.ApiService;
+import com.jk.api.util.HttpUtil;
+import com.jk.api.util.Md5Util;
+import com.jk.common.annotation.KrtIgnoreAuth;
+import com.jk.common.bean.ReturnBean;
+import com.jk.common.exception.KrtException;
+import com.jk.common.util.RandomUtils;
+import com.jk.kq.constant.CommonConst;
+import com.jk.kq.entity.OpenUser;
+import com.jk.kq.service.IOpenUserService;
+import com.jk.sys.entity.Role;
+import com.jk.sys.entity.User;
+import com.jk.sys.entity.UserRole;
+import com.jk.sys.service.IOrganService;
+import com.jk.sys.service.IRoleService;
+import com.jk.sys.service.IUserRoleService;
+import com.jk.sys.service.IUserService;
+import io.swagger.annotations.ApiImplicitParam;
+import io.swagger.annotations.ApiImplicitParams;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.*;
+
+import javax.servlet.http.HttpServletRequest;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.util.*;
+
+/**
+ * 和考勤小程序微信端登录相关的API接口
+ *
+ * @author 缪隽峰
+ * @version 1.0
+ * @date 2020年05月21日
+ */
+@Slf4j
+@Controller
+@RequestMapping("api/wechat")
+public class ApiWechatController {
+
+    @Autowired
+    private IOpenUserService openUserService;
+
+    @Autowired
+    private ApiService apiService;
+
+    @Autowired
+    private IOrganService organService;
+
+    @Autowired
+    private IRoleService roleService;
+
+    @Autowired
+    private IUserRoleService userRoleService;
+
+    /**
+     * 获取auth
+     *
+     * @param code
+     * @return
+     */
+    @PostMapping("auth")
+    @ApiImplicitParams({
+            @ApiImplicitParam(paramType = "form", dataType = "string", name = "code", value = "code", required = true)
+    })
+    @ResponseBody
+    @KrtIgnoreAuth
+    public ReturnBean auth(
+            HttpServletRequest request,
+            @RequestParam String code
+    ) {
+        Map<String, String> queryParas = new HashMap<>();
+        queryParas.put("appid", WechatConst.APP_ID);
+        queryParas.put("secret", WechatConst.APP_SECRET);
+        queryParas.put("grant_type", "authorization_code");
+        queryParas.put("js_code", code);
+        String result = HttpUtil.get(WechatConst.OPEN_ID_URL, queryParas);
+        JSONObject data = JSONObject.parseObject(result);
+        if (data.containsKey("openid") && data.containsKey("session_key")) {
+            String openid = data.getString("openid");
+            String sessionKey = data.getString("session_key");
+            String unionid = data.getString("unionid");
+            String thirdSession = Md5Util.execute(sessionKey + RandomUtils.getRandomStr(8) + openid);
+
+            OpenUser openUser = openUserService.selectByOpenid(openid);
+            if (openUser == null) {
+                openUser = new OpenUser();
+                openUser.setOpenId(openid);
+                openUser.setUnionId(unionid);
+                openUser.setSessionKey(sessionKey);
+                openUser.setThirdSession(thirdSession);
+                openUser.setAuth(false);
+                openUser.setState(CommonConst.OPEN_USER_STATE_PEND);
+                openUserService.insert(openUser);
+            } else {
+                openUser.setOpenId(openid);
+                openUser.setUnionId(unionid);
+                openUser.setSessionKey(sessionKey);
+                openUser.setThirdSession(thirdSession);
+                openUserService.updateById(openUser);
+            }
+            SessionDTO sessionDTO = new SessionDTO();
+            sessionDTO.setOpenUser(openUser);
+            request.getSession().setAttribute(thirdSession, sessionDTO);
+            return ReturnBean.ok(thirdSession);
+        }
+        return ReturnBean.error("鉴权失败");
+    }
+
+    /**
+     * 获取userInfo
+     *
+     * @return
+     */
+    @PostMapping("userInfo")
+    @ApiImplicitParams({
+            @ApiImplicitParam(paramType = "header", name = "thirdSession", value = "thirdSession"),
+            @ApiImplicitParam(paramType = "form", dataType = "string", name = "nickName", value = "昵称", required = true),
+            @ApiImplicitParam(paramType = "form", dataType = "string", name = "avatarUrl", value = "头像", required = true),
+            @ApiImplicitParam(paramType = "form", dataType = "string", name = "gender", value = "性别", required = true),
+            @ApiImplicitParam(paramType = "form", dataType = "string", name = "province", value = "省份", required = true),
+            @ApiImplicitParam(paramType = "form", dataType = "string", name = "city", value = "城市", required = true),
+            @ApiImplicitParam(paramType = "form", dataType = "string", name = "country", value = "国家", required = true),
+            @ApiImplicitParam(paramType = "form", dataType = "string", name = "language", value = "语言", required = true)
+    })
+    @ResponseBody
+    @KrtIgnoreAuth
+    public ReturnBean userInfo(
+            HttpServletRequest request,
+            @RequestParam String nickName,
+            @RequestParam String avatarUrl,
+            @RequestParam String gender,
+            @RequestParam String province,
+            @RequestParam String city,
+            @RequestParam String country,
+            @RequestParam String language
+    ) throws UnsupportedEncodingException {
+        OpenUser openUser = apiService.getOpenUser(request);
+        if (openUser != null) {
+            OpenUser updateOpenUser = new OpenUser();
+            updateOpenUser.setId(openUser.getId());
+            updateOpenUser.setNickName(URLEncoder.encode(nickName, CommonConst.CHARSET_UTF8));
+            updateOpenUser.setAvatarUrl(avatarUrl);
+            updateOpenUser.setGender(gender);
+            updateOpenUser.setCountry(country);
+            updateOpenUser.setProvince(province);
+            updateOpenUser.setCity(city);
+            updateOpenUser.setLanguage(language);
+            openUserService.updateById(updateOpenUser);
+
+            Map retval = new HashMap();
+            retval.put("organId", openUser.getOrganId());
+            retval.put("organ", openUser.getOrgan());
+            retval.put("roleId", openUser.getRoleId());
+            retval.put("role", openUser.getRole());
+            retval.put("roles", roleService.selectList());
+            retval.put("name", openUser.getName());
+            retval.put("state", openUser.getState());
+            if( openUser.getState() == 0 ){
+                retval.put("stateText", "等待审核");
+            }else if( openUser.getState() == 1 ){
+                retval.put("stateText", "审核通过");
+            }else if( openUser.getState() == -1 ){
+                retval.put("stateText", "审核拒绝");
+            }
+
+            Map para = new HashMap();
+            para.put("type", 2);
+            retval.put("organs", organService.selectByMap(para));
+            return ReturnBean.ok(retval);
+        }
+        return ReturnBean.error("用户信息更新失败");
+    }
+
+
+    /**
+     * 修改部门姓名
+     *
+     * @return
+     */
+    @PostMapping("userData")
+    @ApiImplicitParams({
+            @ApiImplicitParam(paramType = "header", name = "thirdSession", value = "thirdSession"),
+            @ApiImplicitParam(paramType = "form", dataType = "number", name = "organId", value = "机构id", required = true),
+            @ApiImplicitParam(paramType = "form", dataType = "string", name = "organ", value = "机构名称", required = true),
+            @ApiImplicitParam(paramType = "form", dataType = "number", name = "roleId", value = "职位id", required = true),
+            @ApiImplicitParam(paramType = "form", dataType = "string", name = "role", value = "职位名称", required = true),
+            @ApiImplicitParam(paramType = "form", dataType = "string", name = "name", value = "姓名", required = true)
+    })
+    @ResponseBody
+    @KrtIgnoreAuth
+    public ReturnBean userData(
+            HttpServletRequest request,
+            @RequestParam Integer organId,
+            @RequestParam String organ,
+            @RequestParam Integer roleId,
+            @RequestParam String role,
+            @RequestParam String name
+    ) {
+        OpenUser openUser = apiService.getOpenUser(request);
+        if (openUser != null) {
+            OpenUser userDB = openUserService.selectById(openUser.getId());
+            if (userDB.getState() == 1) {
+                return ReturnBean.error(201, "审核通过");
+            }
+            userDB.setOrganId(organId);
+            userDB.setOrgan(organ);
+//            Role byId = roleService.selectById(roleId);
+            userDB.setRoleId(roleId);
+            userDB.setRole(role);
+//            userDB.setRoles(Arrays.asList(byId));
+//            Integer id = byId.getId();
+            userDB.setName(name);
+            userDB.setState(0);
+            openUserService.updateById(userDB);
+
+            //删除用户角色
+//            userRoleService.delete(Wrappers.<UserRole>lambdaQuery().eq(UserRole::getUserId, userDB.getId()));
+//            insertUserRole(userDB, Arrays.asList(byId));
+            return ReturnBean.ok();
+        }
+        return ReturnBean.error("用户信息更新失败");
+    }
+
+    /**
+     * 添加用户角色
+     *
+     * @param user    用户信息
+     * @param roleIds 用户角色ids
+     */
+    public void insertUserRole(User user, List<Role> roleIds) {
+        if (roleIds != null && roleIds.size() > 0) {
+            List<UserRole> userRoleList = new ArrayList<>();
+            for (Role role : roleIds) {
+                UserRole userRole = new UserRole();
+                userRole.setUserId(user.getId());
+                userRole.setRoleId(role.getId());
+                userRoleList.add(userRole);
+            }
+            if (userRoleList.size() > 0) {
+                userRoleService.insertBatch(userRoleList);
+            }
+        }
+    }
+}

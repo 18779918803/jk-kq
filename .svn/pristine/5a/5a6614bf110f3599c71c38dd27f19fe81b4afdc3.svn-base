@@ -1,0 +1,87 @@
+package com.jk.kq.entity.vo;
+
+
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import lombok.*;
+
+import java.math.BigDecimal;
+
+@Data
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public class CheckVO {
+
+
+    /**
+     * id
+     */
+    private Integer id;
+
+    /**
+     * 1 事假 2 加班  前端处理
+     */
+    private Integer pid;
+
+
+    /**
+     * 1 事假 2 加班  前端处理
+     */
+    private Integer typeId;
+
+    /**
+     * 申请人
+     */
+    private String applyUser;
+
+
+    /**
+     * 申请人
+     */
+    private String name;
+
+
+
+    /** 任务名称 */
+    private String taskName;
+
+    /**
+     * 公司ID/部门ID
+     */
+    private Integer organId;
+
+    /**
+     * 公司/部门
+     */
+    private String organ;
+
+    /**
+     * jk_work_type name
+     */
+    private String typeName;
+
+    /**
+     * 请假天数
+     */
+    private BigDecimal day;
+
+    /**
+     * 请假原因
+     */
+    private String reason;
+
+    /**
+     * 请假时间
+     */
+    private String  startDate;
+
+
+    /**
+     * 核销时间
+     */
+    private  String  date;
+
+
+}

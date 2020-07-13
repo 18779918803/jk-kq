@@ -1,0 +1,247 @@
+package com.jk.api.controller;
+
+
+import com.jk.api.dto.FinishDTO;
+import com.jk.api.enums.OffEnums;
+import com.jk.api.enums.TypeEnums;
+import com.jk.api.enums.WriteEnums;
+import com.jk.api.service.ApiService;
+import com.jk.common.annotation.KrtIgnoreAuth;
+import com.jk.common.bean.ReturnBean;
+import com.jk.common.bean.ReturnCode;
+import com.jk.kq.entity.vo.LeaveRecordVO;
+import com.jk.kq.entity.vo.OvertimeRecordVo;
+import com.jk.kq.entity.vo.WriteoffRecordVo;
+import com.jk.kq.service.ILeaveRecordService;
+import com.jk.kq.service.IOvertimeRecordService;
+import com.jk.kq.service.IWorkTypeService;
+import com.jk.kq.service.IWriteoffRecordService;
+import com.jk.sys.entity.User;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.ObjectUtils;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import javax.servlet.http.HttpServletRequest;
+import java.util.*;
+
+@RestController
+@RequestMapping("api/wechat/kq")
+@Slf4j
+public class FinishApiController {
+
+
+    @Autowired
+    private ILeaveRecordService leaveRecordService;
+
+    @Autowired
+    private IWorkTypeService workTypeService;
+
+    @Autowired
+    private IWriteoffRecordService writeoffRecordService;
+
+    @Autowired
+    private ApiService apiService;
+
+    @Autowired
+    private IOvertimeRecordService overtimeRecordService;
+
+
+    @KrtIgnoreAuth
+    @GetMapping("finish/list")
+    public ReturnBean applicationList(HttpServletRequest request, FinishDTO dto)   {
+        User openUser = apiService.getUser(request);
+        List<Object> result = new ArrayList<>();
+        Map<String,Object> map = new HashMap<>();
+        if (ObjectUtils.isEmpty(dto.getTypeId())){
+            return ReturnBean.error(
+                    ReturnCode.INVALID_REQUEST.getCode(),"类型id为空"
+            );
+        }
+        if (ObjectUtils.isEmpty(dto.getDate())){
+            return ReturnBean.error(
+                    ReturnCode.INVALID_REQUEST.getCode(),"日期为空"
+            );
+        }
+        map.put("date",dto.getDate());
+        //默认查请假
+        Integer typeId = dto.getTypeId();
+        if (TypeEnums.ALL.getStatus().equals(typeId)){
+            map.put("type",TypeEnums.LEAVE.name().toLowerCase());
+            List<LeaveRecordVO> doneTasks = leaveRecordService.findDoneTasks(map, openUser.getId().toString());
+            for (LeaveRecordVO doneTask : doneTasks) {
+                if(doneTask.getTypeId().equals(OffEnums.THING_OFF.getTypeId())){
+                    doneTask.setTypeName(OffEnums.THING_OFF.getTypeName());
+                }else if(doneTask.getTypeId().equals(OffEnums.YEAR_OFF.getTypeId())){
+                    doneTask.setTypeName(OffEnums.YEAR_OFF.getTypeName());
+                }
+                if(doneTask.getTimeId().equals(OffEnums.MORNING_FREE.getTypeId())){
+                    doneTask.setTimeName(OffEnums.MORNING_FREE.getTypeName());
+                }else if(doneTask.getTimeId().equals(OffEnums.NOON_FREE.getTypeId())){
+                    doneTask.setTimeName(OffEnums.NOON_FREE.getTypeName());
+                }
+                doneTask.setStartDate(doneTask.getStartDate().substring(0, 10));
+                doneTask.setEndDate(doneTask.getEndDate().substring(0, 10));
+                doneTask.setApplyUser(doneTask.getName());
+
+            }
+            result.addAll(doneTasks);
+
+            map.put("type",TypeEnums.WRITEOFF.name().toLowerCase());
+            List<WriteoffRecordVo> writeoffRecordVos = writeoffRecordService.findDoneTasks(map, openUser.getId().toString());
+            for (WriteoffRecordVo doneTask : writeoffRecordVos) {
+                if(doneTask.getTypeId().equals(WriteEnums.MORNING_FREE.getTypeId())){
+                    doneTask.setTypeName(WriteEnums.MORNING_FREE.getTypeName());
+                }else if(doneTask.getTypeId().equals(WriteEnums.NOON_FREE.getTypeId())){
+                    doneTask.setTypeName(WriteEnums.NOON_FREE.getTypeName());
+                }
+                doneTask.setDate(doneTask.getDate().substring(0, 10));
+                doneTask.setApplyUser(doneTask.getName());
+
+            }
+            result.addAll(writeoffRecordVos);
+
+
+            map.put("type",TypeEnums.OVERTIME.name().toLowerCase());
+            List<OvertimeRecordVo> overtimeRecordVos = overtimeRecordService.findDoneTasks(map, openUser.getId().toString());
+            for (OvertimeRecordVo doneTask : overtimeRecordVos) {
+                doneTask.setDate(doneTask.getDate().substring(0, 10));
+                doneTask.setApplyUser(doneTask.getName());
+
+            }
+            result.addAll(overtimeRecordVos);
+            ListSort(result);
+            return ReturnBean.ok(result);
+
+        }else if (TypeEnums.LEAVE.getStatus().equals(typeId)){
+            map.put("type",TypeEnums.LEAVE.name().toLowerCase());
+            List<LeaveRecordVO> doneTasks = leaveRecordService.findDoneTasks(map, openUser.getId().toString());
+            for (LeaveRecordVO doneTask : doneTasks) {
+                if(doneTask.getTypeId().equals(OffEnums.THING_OFF.getTypeId())){
+                    doneTask.setTypeName(OffEnums.THING_OFF.getTypeName());
+                }else if(doneTask.getTypeId().equals(OffEnums.YEAR_OFF.getTypeId())){
+                    doneTask.setTypeName(OffEnums.YEAR_OFF.getTypeName());
+                }
+                if(doneTask.getTimeId().equals(OffEnums.MORNING_FREE.getTypeId())){
+                    doneTask.setTimeName(OffEnums.MORNING_FREE.getTypeName());
+                }else if(doneTask.getTimeId().equals(OffEnums.NOON_FREE.getTypeId())){
+                    doneTask.setTimeName(OffEnums.NOON_FREE.getTypeName());
+                }
+                doneTask.setStartDate(doneTask.getStartDate().substring(0, 10));
+                doneTask.setEndDate(doneTask.getEndDate().substring(0, 10));
+                doneTask.setApplyUser(doneTask.getName());
+
+            }
+            LeaveSort(doneTasks);
+            return ReturnBean.ok(doneTasks);
+        }else if (TypeEnums.WRITEOFF.getStatus().equals(typeId)){
+            map.put("type",TypeEnums.WRITEOFF.name().toLowerCase());
+            List<WriteoffRecordVo> doneTasks = writeoffRecordService.findDoneTasks(map, openUser.getId().toString());
+            for (WriteoffRecordVo doneTask : doneTasks) {
+                if(doneTask.getTypeId().equals(WriteEnums.MORNING_FREE.getTypeId())){
+                    doneTask.setTypeName(WriteEnums.MORNING_FREE.getTypeName());
+                }else if(doneTask.getTypeId().equals(WriteEnums.NOON_FREE.getTypeId())){
+                    doneTask.setTypeName(WriteEnums.NOON_FREE.getTypeName());
+                }
+                doneTask.setDate(doneTask.getDate().substring(0, 10));
+                doneTask.setApplyUser(doneTask.getName());
+            }
+
+            WriteSort(doneTasks);
+
+            return ReturnBean.ok(doneTasks);
+        }else if (TypeEnums.OVERTIME.getStatus().equals(typeId)){
+            map.put("type",TypeEnums.OVERTIME.name().toLowerCase());
+            List<OvertimeRecordVo> doneTasks = overtimeRecordService.findDoneTasks(map, openUser.getId().toString());
+            for (OvertimeRecordVo doneTask : doneTasks) {
+                doneTask.setDate(doneTask.getDate().substring(0, 10));
+                doneTask.setApplyUser(doneTask.getName());
+            }
+            OvertimeSort(doneTasks);
+            return ReturnBean.ok(doneTasks);
+        }
+
+      return ReturnBean.ok();
+    }
+
+
+    private static void WriteSort(List<WriteoffRecordVo> list) {
+        //定义一个比较器
+        list.sort((o1, o2) -> {
+            try {
+                    Date dt1 = o1.getInsertTime();
+                    Date dt2 = o2.getInsertTime();
+                    return Long.compare(dt1.getTime(), dt2.getTime());
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            return 0;
+        });
+    }
+
+
+    private static void LeaveSort(List<LeaveRecordVO> list) {
+        //定义一个比较器
+        list.sort((o1, o2) -> {
+            try {
+                Date dt1 = o1.getInsertTime();
+                Date dt2 = o2.getInsertTime();
+                return Long.compare(dt1.getTime(), dt2.getTime());
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            return 0;
+        });
+    }
+
+    private static void OvertimeSort(List<OvertimeRecordVo> list) {
+        //定义一个比较器
+        list.sort((o1, o2) -> {
+            try {
+                Date dt1 = o1.getInsertTime();
+                Date dt2 = o2.getInsertTime();
+                return Long.compare(dt1.getTime(), dt2.getTime());
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            return 0;
+        });
+    }
+
+    private static void ListSort(List<Object> list) {
+        //定义一个比较器
+        list.sort((o1, o2) -> {
+            try {
+                if (o1 instanceof WriteoffRecordVo){
+                    WriteoffRecordVo vo1 = (WriteoffRecordVo)o1;
+                    WriteoffRecordVo vo2 = (WriteoffRecordVo)o2;
+                    Date dt1 = vo1.getInsertTime();
+                    Date dt2 = vo2.getInsertTime();
+                    return Long.compare(dt1.getTime(), dt2.getTime());
+                }
+
+                if (o1 instanceof LeaveRecordVO){
+                    LeaveRecordVO vo1 = (LeaveRecordVO)o1;
+                    LeaveRecordVO vo2 = (LeaveRecordVO)o2;
+                    Date dt1 = vo1.getInsertTime();
+                    Date dt2 = vo2.getInsertTime();
+                    return Long.compare(dt1.getTime(), dt2.getTime());
+                }
+
+                if (o1 instanceof OvertimeRecordVo){
+                    OvertimeRecordVo vo1 = (OvertimeRecordVo)o1;
+                    OvertimeRecordVo vo2 = (OvertimeRecordVo)o2;
+                    Date dt1 = vo1.getInsertTime();
+                    Date dt2 = vo2.getInsertTime();
+                    return Long.compare(dt1.getTime(), dt2.getTime());
+                }
+
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            return 0;
+        });
+    }
+}

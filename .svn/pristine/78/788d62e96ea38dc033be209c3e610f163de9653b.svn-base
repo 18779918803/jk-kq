@@ -1,0 +1,261 @@
+package com.jk.kq.service.impl;
+
+import com.github.pagehelper.Page;
+import com.jk.activiti.domain.BizLeaveVo;
+import com.jk.activiti.page.PageDomain;
+import com.jk.activiti.page.TableSupport;
+import com.jk.activiti.service.IProcessService;
+import com.jk.activiti.utils.DateUtils;
+import com.jk.activiti.utils.StringUtils;
+import com.jk.common.base.BaseServiceImpl;
+import com.jk.common.exception.KqException;
+import com.jk.kq.common.GeneralConvertor;
+import com.jk.kq.entity.OpenUser;
+import com.jk.kq.entity.Position;
+import com.jk.kq.entity.WriteoffRecord;
+import com.jk.kq.entity.dto.OverTimeRecordDTO;
+import com.jk.kq.entity.vo.OvertimeRecordVo;
+import com.jk.kq.entity.vo.WriteoffRecordVo;
+import com.jk.kq.enums.TypeEnums;
+import com.jk.kq.mapper.OpenUserMapper;
+import com.jk.kq.service.IPositionService;
+import com.jk.sys.entity.User;
+import com.jk.sys.service.IUserService;
+import org.activiti.engine.HistoryService;
+import org.activiti.engine.RuntimeService;
+import org.activiti.engine.TaskService;
+import org.activiti.engine.history.HistoricProcessInstance;
+import org.activiti.engine.history.HistoricTaskInstance;
+import org.activiti.engine.impl.persistence.entity.TaskEntityImpl;
+import org.activiti.engine.runtime.ProcessInstance;
+import org.activiti.engine.task.Task;
+import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import com.jk.kq.entity.OvertimeRecord;
+import com.jk.kq.mapper.OvertimeRecordMapper;
+import com.jk.kq.service.IOvertimeRecordService;
+import org.springframework.util.CollectionUtils;
+
+import javax.servlet.http.HttpServletRequest;
+import java.time.LocalDate;
+import java.util.*;
+
+
+/**
+ * 加班申请服务接口实现层
+ *
+ * @author 何任鹏
+ * @version 1.0
+ * @date 2020年06月01日
+ */
+@Service
+public class OvertimeRecordServiceImpl extends BaseServiceImpl<OvertimeRecordMapper, OvertimeRecord> implements IOvertimeRecordService {
+
+    @Autowired
+    private OvertimeRecordMapper overtimeRecordMapper;
+
+    @Autowired
+    private IPositionService positionService;
+
+    @Autowired
+    private OpenUserMapper openUserMapper;
+
+    @Autowired
+    private GeneralConvertor convertor;
+
+    @Autowired
+    private IProcessService processService;
+
+    @Autowired
+    private HistoryService historyService;
+
+    @Autowired
+    private TaskService taskService;
+    @Autowired
+    private RuntimeService runtimeService;
+
+    @Autowired
+    private IUserService userService;
+
+    /**
+     * 通过OpenUserId查找当月用户的加班记录
+     * @param id
+     * @param date
+     * @return
+     */
+    @Override
+    public List<OvertimeRecord> selectByUserIdAndDate(Integer id, LocalDate start,LocalDate end) {
+        return overtimeRecordMapper.selectByUserIdAndDate(id, start,end);
+    }
+
+    /**
+     * 新增加班申请记录
+     * 在这里应该查找自己的上一级领导，将待审核的模板消息推送给他
+     * @param openUser
+     * @param dto
+     * @return  返回该申请需要推送的用户的集合
+     */
+    @Override
+    public List<OpenUser> insert(OpenUser openUser, OverTimeRecordDTO dto) {
+        dto.setUserId(openUser.getId());
+        dto.setName(openUser.getName());
+        dto.setOrganId(openUser.getOrganId());
+        dto.setOrgan(openUser.getOrgan());
+        //查找用户的职位信息
+        Position position = positionService.selectById(openUser.getPositionId());
+        //用户的申请初始状态等于用户的职位审批等级
+        dto.setState(position.getGrade());
+        //集团部门加班、核销一般员工呈部门负责人和分管领导审批，部门负责人呈分管领导审批
+        List<OpenUser> checkList = null;
+        if (position.getGrade() <= 1) {
+            dto.setTopState(2);
+            //如果员工是普通员工，直接查找同部门的部门负责人进行推送
+            if (position.getGrade() == 0) {
+                //给同部门的上一级领导审批
+                checkList = openUserMapper.selectOpenUser(openUser.getOrganId(), position.getGrade() + 1);
+            } else if (position.getGrade() == 1) {
+                //如果是公司部门负责人，那么查找分管领导进行推送
+                checkList = openUserMapper.selectLeaders(openUser.getOrganId(), position.getGrade() + 1);
+            }
+            //集团分管领导不走审批
+        }
+        OvertimeRecord entity = this.convertor.convertor(dto, OvertimeRecord.class);
+        overtimeRecordMapper.insert(entity);
+        return checkList;
+    }
+
+    /**
+     * 查找用户可以审核的加班申请
+     * @param queryMap
+     * @return
+     */
+    @Override
+    public List selectToCheck(Map queryMap) {
+        return overtimeRecordMapper.selectToCheck(queryMap);
+    }
+
+    @Override
+    public ProcessInstance submitApply(OvertimeRecord entity, String applyUserId, String key, Map<String, Object> variables) throws KqException {
+        entity.setApplyUser(applyUserId);
+        entity.setApplyTime(DateUtils.getNowDate());
+        String businessKey = entity.getId().toString(); // 实体类 ID，作为流程的业务 key
+        ProcessInstance processInstance = processService.submitApply(applyUserId, businessKey, entity.getTitle(), entity.getReason(), key, variables);
+        String processInstanceId = processInstance.getId();
+        entity.setInstanceId(processInstanceId); // 建立双向关系
+        overtimeRecordMapper.updateById(entity);
+        return processInstance;
+    }
+
+    @Override
+    public List<OvertimeRecord> findTodoTasks(String username, Map param) {
+        List<OvertimeRecord> results = new ArrayList<>();
+        //Query query = new Query(param);
+        //com.baomidou.mybatisplus.extension.plugins.pagination.Page page = query.getPage();
+        //PageHelper.startPage(page);
+        List<Task> tasks = processService.findTodoTasks(username, (String)param.get("type"));
+        // 根据流程的业务ID查询实体并关联
+        for (Task task : tasks) {
+            TaskEntityImpl taskImpl = (TaskEntityImpl) task;
+            String processInstanceId = taskImpl.getProcessInstanceId();
+            // 条件过滤 1
+            if (param.get("instanceId") != null && StringUtils.isNotBlank((CharSequence) param.get("instanceId")) && !param.get("instanceId").equals(processInstanceId)) {
+                continue;
+            }
+            ProcessInstance processInstance = runtimeService.createProcessInstanceQuery().processInstanceId(processInstanceId).singleResult();
+            String businessKey = processInstance.getBusinessKey();
+            OvertimeRecord leave2 = overtimeRecordMapper.selectById(Integer.parseInt(businessKey));
+            // 条件过滤 2
+            //if (StringUtils.isNotBlank((String) param.get("type")) && !param.get("type").equals(leave2.getType())) {
+            //    continue;
+            //}
+            leave2.setTaskId(taskImpl.getId());
+            if (taskImpl.getSuspensionState() == 2) {
+                leave2.setTaskName("已挂起");
+            } else {
+                leave2.setTaskName(taskImpl.getName());
+            }
+            Integer userId = userService.getUserId(leave2.getApplyUser());
+            User user = userService.selectById(userId);
+            leave2.setApplyUserName(user.getName());
+            results.add(leave2);
+        }
+
+        //page.setRecords(results);
+
+        return results;
+    }
+
+    @Override
+    public void approval(Integer id, User user, HttpServletRequest request) {
+        OvertimeRecord leave = selectById(id);
+        List<Task> taskList = taskService.createTaskQuery()
+                .processInstanceId(leave.getInstanceId())
+                .list();    // 例如请假会签，会同时拥有多个任务
+        if (!CollectionUtils.isEmpty(taskList)) {
+            TaskEntityImpl task = (TaskEntityImpl) taskList.get(0);
+        }
+        HashMap<String, Object> param = new HashMap<>();
+        param.put("isPass",true);
+        param.put("flag",true);
+        param.put("comment","");
+        param.put("userName",user.getUsername());
+        processService.complete(taskList.get(0).getId(), leave.getInstanceId(), leave.getTitle(), leave.getReason()
+                , TypeEnums.OVERTIME.name().toLowerCase()
+                , param, request);
+    }
+
+    @Override
+    public List<OvertimeRecordVo> findDoneTasks(Map para, String username) {
+
+        Date date =(Date) para.get("date");
+
+        // 手动分页
+        PageDomain pageDomain = TableSupport.buildPageRequest();
+        Integer pageNum = pageDomain.getPageNum();
+        Integer pageSize = pageDomain.getPageSize();
+        Page<BizLeaveVo> list = new Page<>();
+
+        List<OvertimeRecord> results = new ArrayList<>();
+        List<HistoricTaskInstance> hisList = processService.findDoneTasks(username, (String) para.get("type"));
+        // 根据流程的业务ID查询实体并关联
+        for (HistoricTaskInstance instance : hisList) {
+            String processInstanceId = instance.getProcessInstanceId();
+
+            Date claimTime = instance.getClaimTime();
+            if (!DateUtils.isSameDay(claimTime, date)){
+                continue;
+            }
+            // 条件过滤 1
+            if (para.get("instanceId") != null && StringUtils.isNotBlank((CharSequence) para.get("instanceId")) && !para.get("instanceId").equals(processInstanceId)) {
+                continue;
+            }
+            HistoricProcessInstance processInstance = historyService.createHistoricProcessInstanceQuery().processInstanceId(processInstanceId).singleResult();
+            String businessKey = processInstance.getBusinessKey();
+            OvertimeRecord leave2 = overtimeRecordMapper.selectById(Integer.parseInt(businessKey));
+            OvertimeRecord newLeave = new OvertimeRecord();
+            BeanUtils.copyProperties(leave2, newLeave);
+            // 条件过滤 2
+            //if (StringUtils.isNotBlank((String) para.get("type")) && !para.get("type").equals(leave2.getType())) {
+            //    continue;
+            //}
+            newLeave.setTaskId(instance.getId());
+            newLeave.setTaskName(instance.getName());
+            newLeave.setDoneTime(instance.getEndTime());
+            Integer userId = userService.getUserId(leave2.getApplyUser());
+            User user = userService.selectById(userId);
+            newLeave.setApplyUserName(user.getName());
+            results.add(newLeave);
+        }
+
+//        Query query = new Query(para);
+//        com.baomidou.mybatisplus.extension.plugins.pagination.Page page = query.getPage();
+//        PageHelper.startPage(page);
+//        page.setRecords(results);
+        List<OvertimeRecordVo> vos = this.convertor.convertor(results, OvertimeRecordVo.class);
+        for (OvertimeRecordVo vo : vos) {
+            vo.setPid(TypeEnums.OVERTIME.getStatus());
+        }
+        return vos;
+    }
+}

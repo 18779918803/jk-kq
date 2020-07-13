@@ -1,0 +1,60 @@
+package com.jk.api.service.impl;
+
+import com.jk.api.constant.ApiConst;
+import com.jk.api.service.ApiService;
+import com.jk.kq.entity.OpenUser;
+import com.jk.kq.service.IOpenUserService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import javax.servlet.http.HttpServletRequest;
+
+/**
+ * {{文件描述}}
+ *
+ * @author 缪隽峰
+ * @version 1.0
+ * @date 2020年03月27日
+ */
+@Service
+public class ApiServiceImpl implements ApiService {
+
+    @Autowired
+    private IOpenUserService openUserService;
+
+
+    @Override
+    public String getThirdSession(HttpServletRequest request){
+        String thirdSession = (String) request.getAttribute(ApiConst.THIRD_SESSION);
+        return thirdSession;
+    }
+
+    @Override
+    public OpenUser getOpenUser(HttpServletRequest request){
+        String thirdSession = (String) request.getAttribute(ApiConst.THIRD_SESSION);
+        return openUserService.selectByThirdSession(thirdSession);
+    }
+
+    @Override
+    public String selectSession(HttpServletRequest request, String thirdSession) {
+        String session = (String) request.getSession().getAttribute(ApiConst.THIRD_SESSION);
+//        if( session == null ) {
+//            OpenUser openUser = openUserService.selectByThirdSession(thirdSession);
+//            UserCard userCard = userCardService.selectByOpenUserId(openUser.getId());
+//            if( openUser == null ){
+//                return null;
+//            }
+//            if( openUser.getState() == 1 && userCard == null ){
+//                return null;
+//            }
+//            sessionDTO = new SessionDTO();
+//            sessionDTO.setOpenUser(openUser);
+//            sessionDTO.setUserCard(userCard);
+//            request.getSession().setAttribute(thirdSession, sessionDTO);
+//        }
+//        return sessionDTO;
+        return null;
+    }
+
+
+}

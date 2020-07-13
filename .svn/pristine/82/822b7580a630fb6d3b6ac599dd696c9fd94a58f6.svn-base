@@ -1,0 +1,72 @@
+package com.jk.api.service.impl;
+
+
+import com.jk.api.enums.RoleEnums;
+import com.jk.common.bean.ReturnBean;
+import com.jk.common.bean.ReturnCode;
+import com.jk.common.exception.KqException;
+import com.jk.kq.common.GeneralConvertor;
+import com.jk.kq.entity.LeaveRecord;
+import com.jk.kq.entity.dto.LeaveRecordDTO;
+import com.jk.kq.service.ILeaveRecordService;
+import com.jk.sys.entity.Organ;
+import com.jk.sys.entity.Role;
+import com.jk.sys.entity.User;
+import com.jk.sys.service.IOrganService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+@Service
+public class LeaveRecordService {
+
+    @Autowired
+    private ILeaveRecordService recordService;
+
+    @Autowired
+    private GeneralConvertor convertor;
+
+    @Autowired
+    private IOrganService organService;
+
+
+    @Autowired
+    private ILeaveRecordService leaveRecordService;
+
+    @Transactional
+    public void addLeave(User openUser, LeaveRecordDTO dto) throws KqException {
+        //判断角色
+        int leave = 0;
+        List<Role> roles = openUser.getRoles();
+        for (Role role : roles) {
+            if (role.getName().equals(RoleEnums.PU_TONG.getStatus())){
+                leave = 2;
+                break;
+            }
+            if (role.getName().equals(RoleEnums.DEPT_LEADER.getStatus())){
+                leave = 1;
+                break;
+            }
+        }
+        if (leave == 0){
+            throw new KqException(ReturnBean.error(ReturnCode.INVALID_REQUEST.getCode(),
+                    "发起申请人角色无定义"));
+        }
+        //判断当前用户的角色
+        Map<String,Object> map =new HashMap<>();
+        map.put("leave",leave);
+        LeaveRecord convertor = this.convertor.convertor(dto, LeaveRecord.class);
+        Organ organ = organService.selectById(openUser.getOrganId());
+        convertor.setOpenUserId(openUser.getId());
+        convertor.setName(openUser.getName());
+        convertor.setOrgan(organ.getName());
+        convertor.setOrganId(openUser.getOrganId());
+        leaveRecordService.insert(convertor);
+        recordService.submitApply(convertor,openUser.getName(),"leave",map);
+    }
+
+}

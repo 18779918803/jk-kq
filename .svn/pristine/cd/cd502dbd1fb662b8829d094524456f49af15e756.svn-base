@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jk.kq.mapper.LeaveRecordMapper">
+
+    <sql id="Base_Column_List">
+        id,open_user_id,name,organ_id,organ,start_date,end_date,reason,day,state,top_state,type_id,inserter,insert_time,updater,update_time
+    </sql>
+
+    <!-- 带参数查询请假申请列表 -->
+    <select id="selectPageList" resultType="java.util.Map">
+        select
+        r.id,r.open_user_id,r.name,r.organ_id,r.organ,r.start_date,r.reason,r.day,r.state,r.top_state,r.type_id,t.name type_name,r.insert_time
+        from jk_leave_record r
+        left join jk_work_type t on r.type_id = t.id where 1=1
+        <if test="name !=null and name!=''">
+            and r.name like concat('%',#{name},'%')
+        </if>
+        <if test="organId !=null and organId!=''">
+            and r.organ_id = #{organId}
+        </if>
+        <if test="date !=null and date!=''">
+            and r.start_date = #{date}
+        </if>
+        <if test="day !=null and day!=''">
+            and r.day = #{day}
+        </if>
+        <if test="state !=null and state!=''">
+            and r.state = #{state}
+        </if>
+        <if test="typeId !=null and typeId!=''">
+            and r.type_id = #{typeId}
+        </if>
+    </select>
+
+    <!-- 导出数据 -->
+    <select id="selectExcelList" resultType="java.util.Map">
+        select
+        id,open_user_id,name,organ_id,organ,start_date,reason,day,state,type_id,insert_time,'1'
+        from jk_leave_record
+    </select>
+
+    <!--根据OpenUserId查找所有的请假记录-->
+    <select id="selectByOpenUserIdAndDate" resultType="com.jk.kq.entity.LeaveRecord">
+        select
+        r.id,r.open_user_id,r.name,r.organ_id,r.organ,
+        r.start_date,r.reason,r.day,r.state,r.top_state,r.type_id,r.insert_time
+        from jk_leave_record r
+        where open_user_id = #{openUserId}
+        <if test="date != null">
+            and date_format(r.start_date,'%Y-%m') = date_format(#{date},'%Y-%m')
+        </if>
+    </select>
+
+    <!--查找该用户等级可以审核的请假申请-->
+    <select id="selectToCheck" resultType="java.util.Map">
+        select
+        r.id,r.open_user_id,r.name,r.organ_id,r.organ,r.start_date,r.reason,r.day,r.state,r.top_state,r.type_id,t.name type_name,t.pid,r.insert_time
+        from jk_leave_record r
+        left join jk_work_type t on r.type_id = t.id
+        where 1=1 and r.state &gt;= 0 and r.state &lt; r.top_state
+        <if test="date !=null and date!=''">
+            and r.start_date = #{date}
+        </if>
+        <if test="state !=null">
+            and r.state = #{state}
+        </if>
+        <if test="organId !=null and organId!=0">
+            and r.organ_id = #{organId}
+        </if>
+        <if test="organs !=null">
+            and r.organ_id in
+            <foreach item="item" index="index" collection="organs" open="(" separator="," close=")">
+                #{item.id}
+            </foreach>
+        </if>
+    </select>
+
+    <select id="getUserByRoleAndOrgan" resultType="com.jk.sys.entity.User">
+      select  *  from  sys_user  where  1=1 and  organ_id=#{organId} and  id  in  (select user_id  from
+      sys_user_role    where  role_id  =(select  id  from sys_role  WHERE  name=#{name}))
+    </select>
+
+    <select id="getUserOrganByOrgan"  resultType="java.lang.String">
+      select   username  from   sys_user  where   id  in (select user_id  from jk_user_organs  where  organ_id=#{organId})
+	   and   id  in  (select  user_id   from  sys_user_role  where   role_id =(select  id  from sys_role  WHERE  name=#{roleName}))
+    </select>
+
+</mapper>
+

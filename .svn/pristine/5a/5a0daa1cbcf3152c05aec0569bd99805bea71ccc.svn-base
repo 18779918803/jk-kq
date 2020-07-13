@@ -1,0 +1,18 @@
+package com.jk.kq.mapper;
+
+import com.jk.common.base.BaseMapper;
+import org.apache.ibatis.annotations.Mapper;
+import com.jk.kq.entity.Holiday;
+
+/**
+ * 法定节假日映射层
+ *
+ * @author 何任鹏
+ * @version 1.0
+ * @date 2020年05月25日
+ */
+@Mapper
+public interface HolidayMapper extends BaseMapper<Holiday> {
+
+
+}

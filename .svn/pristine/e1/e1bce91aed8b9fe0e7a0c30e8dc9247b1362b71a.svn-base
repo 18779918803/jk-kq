@@ -1,0 +1,205 @@
+package com.jk.db.controller;
+
+import cn.afterturn.easypoi.excel.ExcelExportUtil;
+import cn.afterturn.easypoi.excel.entity.TemplateExportParams;
+import com.alibaba.fastjson.JSONObject;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.jk.common.annotation.KrtLog;
+import com.jk.common.base.BaseController;
+import com.jk.common.bean.DataTable;
+import com.jk.common.bean.ReturnBean;
+import com.jk.db.entity.DbApply;
+import com.jk.db.entity.DbDelay;
+import com.jk.db.service.IDbApplyService;
+import com.jk.db.service.IDbDelayService;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.shiro.authz.annotation.RequiresPermissions;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.beans.factory.annotation.Autowired;
+
+import java.io.IOException;
+import java.net.URLEncoder;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
+
+/**
+ * 督查督办延期（撤销）申请表控制层
+ *
+ * @author 刘杭
+ * @version 1.0
+ * @date 2020年06月10日
+ */
+@Controller
+public class DbDelayController extends BaseController {
+
+    @Autowired
+    private IDbDelayService dbDelayService;
+    @Autowired
+    private IDbApplyService dbApplyService;
+    /**
+     * 督查督办延期（撤销）申请表管理页
+     *
+     * @return {@link String}
+     */
+    @RequiresPermissions("dbDelay:dbDelay:list")
+    @GetMapping("db/dbDelay/list")
+    public String list() {
+        return "db/dbDelay/list";
+    }
+
+    /**
+     * 督查督办延期（撤销）申请表管理
+     *
+     * @param para 搜索参数
+     * @return {@link DataTable}
+     */
+    @RequiresPermissions("dbDelay:dbDelay:list")
+    @PostMapping("db/dbDelay/list")
+    @ResponseBody
+    public DataTable list(@RequestParam Map para) {
+        IPage page = dbDelayService.selectPageList(para);
+        return DataTable.ok(page);
+    }
+
+    /**
+     * 新增督查督办延期（撤销）申请表页
+     *
+     * @return {@link String}
+     */
+    @RequiresPermissions("dbDelay:dbDelay:insert")
+    @GetMapping("db/dbDelay/insert")
+    public String insert() {
+        return "db/dbDelay/insert";
+    }
+
+    /**
+     * 添加督查督办延期申请表
+     *
+     * @param dbDelay 督查督办延期申请表
+     * @return {@link ReturnBean}
+     */
+    @KrtLog("添加督查督办延期申请表")
+    @RequiresPermissions("dbDelay:dbDelay:insert")
+    @PostMapping("db/dbDelay/insert")
+    @ResponseBody
+    public ReturnBean insert(DbDelay dbDelay) {
+        DbApply dbApply = dbApplyService.selectById(dbDelay.getId());
+        if(2==dbApply.getStatus()){
+            dbDelay.setApplyType("延期");
+        }else if(3==dbApply.getStatus()){
+            dbDelay.setApplyType("撤销");
+        }
+        dbDelay.setDbId(dbApply.getDbId());
+        dbDelay.setDbSource(dbApply.getDbSource());
+        dbDelay.setDbLwDate(dbApply.getDbLwDate());
+        dbDelay.setDbContentBrief(dbApply.getDbContentBrief());
+        dbDelay.setDbLevel(dbApply.getDbLevel());
+        dbDelay.setDbAskFinaltime(dbApply.getDbAskFinaltime());
+        dbDelay.setLeadDepartment(dbApply.getLeadDepartment());
+        dbDelay.setResponsibilityDepartment(dbApply.getResponsibilityDepartment());
+        dbDelay.setUnitPrincipal(dbApply.getDepartmentPrincipal());
+        dbDelay.setUnitLead(dbApply.getChargeLead());
+        dbDelay.setManagerAdvice(dbApply.getManagerAdvice());
+        dbDelay.setPresidentAdvice(dbApply.getPresidentAdvice());
+        dbDelayService.insert(dbDelay);
+        return ReturnBean.ok();
+    }
+
+
+    /**
+     * 修改督查督办延期（撤销）申请表页
+     *
+     * @param id 督查督办延期（撤销）申请表id
+     * @return {@link String}
+     */
+    @RequiresPermissions("dbDelay:dbDelay:update")
+    @GetMapping("db/dbDelay/update")
+    public String update(Integer id) {
+        DbDelay dbDelay = dbDelayService.selectById(id);
+        request.setAttribute("dbDelay", dbDelay);
+        return "db/dbDelay/update";
+    }
+
+    /**
+     * 修改督查督办延期（撤销）申请表
+     *
+     * @param dbDelay 督查督办延期（撤销）申请表
+     * @return {@link ReturnBean}
+     */
+    @KrtLog("修改督查督办延期（撤销）申请表")
+    @RequiresPermissions("dbDelay:dbDelay:update")
+    @PostMapping("db/dbDelay/update")
+    @ResponseBody
+    public ReturnBean update(DbDelay dbDelay) {
+        dbDelayService.updateById(dbDelay);
+        return ReturnBean.ok();
+    }
+
+    /**
+     * 删除督查督办延期（撤销）申请表
+     *
+     * @param id 督查督办延期（撤销）申请表id
+     * @return {@link ReturnBean}
+     */
+    @KrtLog("删除督查督办延期（撤销）申请表")
+    @RequiresPermissions("dbDelay:dbDelay:delete")
+    @PostMapping("db/dbDelay/delete")
+    @ResponseBody
+    public ReturnBean delete(Integer id) {
+        dbDelayService.deleteById(id);
+        return ReturnBean.ok();
+    }
+
+    /**
+     * 批量删除督查督办延期（撤销）申请表
+     *
+     * @param ids 督查督办延期（撤销）申请表ids
+     * @return {@link ReturnBean}
+     */
+    @KrtLog("批量删除督查督办延期（撤销）申请表")
+    @RequiresPermissions("dbDelay:dbDelay:delete")
+    @PostMapping("db/dbDelay/deleteByIds")
+    @ResponseBody
+    public ReturnBean deleteByIds(Integer[] ids) {
+        dbDelayService.deleteByIds(Arrays.asList(ids));
+        return ReturnBean.ok();
+    }
+
+    /**
+     * 导出延期（撤销）申请
+     *
+     * @param id 选中id
+     */
+    @KrtLog("导出延期（撤销）申请")
+    @RequiresPermissions("dbDelay:dbDelay:excelOut")
+    @GetMapping("db/dbDelay/excelOut")
+    @ResponseBody
+    public String excelOut(Integer id) throws IOException {
+        JSONObject retval = new JSONObject();
+        TemplateExportParams params = new TemplateExportParams("excel/db/dbDelay.xlsx");
+        params.setSheetName("建控集团督查督办事项立项表");
+        Map map = new HashMap<>();
+        DbDelay outExcel = dbDelayService.selectById(id);
+        ArrayList<DbDelay> dbDelaies = new ArrayList<>();
+        dbDelaies.add(outExcel);
+        map.put("dbList", dbDelaies);
+        map.put("title", "建控集团督查督办事项延期（撤销）表");
+        Workbook workbook = ExcelExportUtil.exportExcel(params, map);
+        Sheet sheet = workbook.getSheetAt(0);
+        // 替换title
+        // 下载
+        response.setCharacterEncoding("UTF-8");
+        response.setHeader("content-Type", "application/vnd.ms-excel");
+        response.setHeader("Content-Disposition", "attachment;filename=" + URLEncoder.encode("建控集团督查督办延期（撤销）统计.xlsx", "UTF-8"));
+        workbook.write(response.getOutputStream());
+        return retval.toString();
+    }
+
+}

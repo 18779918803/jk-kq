@@ -1,0 +1,43 @@
+package com.jk.api.task;
+
+import com.jk.api.util.SendWeChatUtil;
+import com.jk.sys.service.IOrganService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
+
+import java.io.UnsupportedEncodingException;
+import java.util.List;
+
+/**
+ * 微信公众号的定时任务，用于定时拉取更新关注微信公众号的用户信息
+ *
+ * @author 何任鹏
+ * @version 1.0
+ * @date 2020年06月09日
+ */
+@Component
+@EnableScheduling
+public class GzhOpenUserTask {
+
+    @Autowired
+    private SendWeChatUtil util;
+
+    @Autowired
+    private IOrganService organService;
+
+
+
+    /**
+     * 定时任务
+     * 每天的晚上11点更新一次关注公众号的用户信息
+     *
+     * @throws UnsupportedEncodingException
+     */
+    @Scheduled(cron = "0 00 23 * * ?")
+    public void getGZHOpenUserId() throws UnsupportedEncodingException {
+        util.getGZHOpenUserId();
+    }
+
+}

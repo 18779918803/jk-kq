@@ -1,0 +1,20 @@
+package com.jk.sw.service.impl;
+
+import com.jk.common.base.BaseServiceImpl;
+import org.springframework.stereotype.Service;
+import com.jk.sw.entity.SwTask;
+import com.jk.sw.mapper.SwTaskMapper;
+import com.jk.sw.service.ISwTaskService;
+
+
+/**
+ * 任务服务接口实现层
+ *
+ * @author 温龙飞
+ * @version 1.0
+ * @date 2020年06月07日
+ */
+@Service
+public class SwTaskServiceImpl extends BaseServiceImpl<SwTaskMapper, SwTask> implements ISwTaskService {
+
+}

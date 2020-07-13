@@ -1,0 +1,31 @@
+package com.jk.common.exception;
+
+import com.jk.common.bean.ReturnBean;
+
+public class KqException extends Exception {
+    protected ReturnBean returnBean;
+
+    public KqException(ReturnBean returnBean) {
+        super(returnBean.getMsg());
+        this.returnBean = returnBean;
+    }
+
+    public KqException(String msg, Throwable e) {
+        super(msg, e);
+        this.returnBean = ReturnBean.error(msg);
+    }
+
+    public KqException(ReturnBean returnBean, Throwable e) {
+        super(returnBean.getMsg(), e);
+        this.returnBean = returnBean;
+    }
+
+    public ReturnBean getReturnBean() {
+        return returnBean;
+    }
+
+    public void setReturnBean(ReturnBean returnBean) {
+        this.returnBean = returnBean;
+    }
+
+}

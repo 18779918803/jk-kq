@@ -1,0 +1,17 @@
+package com.jk.db.service;
+
+import com.jk.common.base.IBaseService;
+import com.jk.db.entity.DbDelay;
+
+
+/**
+ * 督查督办延期（撤销）申请表服务接口层
+ *
+ * @author 刘杭
+ * @version 1.0
+ * @date 2020年06月10日
+ */
+public interface IDbDelayService extends IBaseService<DbDelay> {
+
+
+}

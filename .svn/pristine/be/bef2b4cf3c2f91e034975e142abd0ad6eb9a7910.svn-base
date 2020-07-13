@@ -1,0 +1,20 @@
+package com.jk.kq.service.impl;
+
+import com.jk.common.base.BaseServiceImpl;
+import org.springframework.stereotype.Service;
+import com.jk.kq.entity.Position;
+import com.jk.kq.mapper.PositionMapper;
+import com.jk.kq.service.IPositionService;
+
+
+/**
+ * 职位服务接口实现层
+ *
+ * @author 何任鹏
+ * @version 1.0
+ * @date 2020年05月26日
+ */
+@Service
+public class PositionServiceImpl extends BaseServiceImpl<PositionMapper, Position> implements IPositionService {
+
+}

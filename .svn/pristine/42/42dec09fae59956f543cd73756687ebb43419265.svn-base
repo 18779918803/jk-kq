@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jk.kq.mapper.OvertimeRecordMapper">
+
+    <sql id="Base_Column_List">
+        id,user_id,name,organ_id,organ,date,reason,day,type_id,inserter,insert_time,updater,update_time
+    </sql>
+
+    <!-- 带参数查询加班申请列表 -->
+    <select id="selectPageList" resultType="java.util.Map">
+        select
+        r.id,r.user_id,r.name,r.organ_id,r.organ,r.date,r.reason,r.day,r.type_id,t.name type_name,r.insert_time
+        from jk_overtime_record r
+        left join jk_work_type t on r.type_id = t.id where 1=1
+        <if test="name !=null and name!=''">
+            and r.name like concat('%',#{name},'%')
+        </if>
+        <if test="organId !=null and organId!=''">
+            and r.organ_id = #{organId}
+        </if>
+        <if test="date !=null and date!=''">
+            and r.date = #{date}
+        </if>
+        <if test="day !=null and day!=''">
+            and r.day = #{day}
+        </if>
+        <if test="typeId !=null and typeId!=''">
+            and r.type_id = #{typeId}
+        </if>
+    </select>
+
+    <!-- 导出数据 -->
+    <select id="selectExcelList" resultType="java.util.Map">
+        select
+        id,user_id,name,organ_id,organ,date,reason,day,type_id,insert_time,'1'
+        from jk_overtime_record
+    </select>
+
+    <!--根据OpenUserId查找所有的加班记录-->
+    <select id="selectHistory" resultType="java.util.Map">
+        select
+          *
+        from jk_overtime_record
+        where 1 = 1
+        and user_id = #{userId}
+        and date_format(date, '%Y-%m') = #{date}
+        order by insert_time desc
+    </select>
+
+    <!--查找该用户等级可以审核的加班申请-->
+    <select id="selectToCheck" resultType="java.util.Map">
+        select
+        r.id,r.user_id,r.name,r.organ_id,r.organ,r.date,r.reason,r.day,r.type_id,t.name type_name,t.pid,r.insert_time
+        from jk_overtime_record r
+        left join jk_work_type t on r.type_id = t.id
+        where 1=1
+        <if test="date !=null and date!=''">
+            and r.date = #{date}
+        </if>
+        <if test="organId !=null and organId!=0">
+            and r.organ_id = #{organId}
+        </if>
+        <if test="organs !=null">
+            and r.organ_id in
+            <foreach item="item" index="index" collection="organs" open="(" separator="," close=")">
+                #{item.id}
+            </foreach>
+        </if>
+    </select>
+
+
+</mapper>
+

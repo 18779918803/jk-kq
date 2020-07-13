@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jk.xcx.mapper.XcxPageResMapper">
+
+    <sql id="Base_Column_List">
+        id,url,name,src,inserter,insert_time,updater,update_time
+    </sql>
+
+    <!-- 带参数查询小程序页面资源列表列表 -->
+    <select id="selectPageList" resultType="com.jk.xcx.entity.XcxPageRes">
+        select
+            <include refid="Base_Column_List"/>
+        from xcx_page_res where 1=1
+    </select>
+
+
+    <select id="getWorksRecListByUserId" resultType="com.jk.xcx.entity.XcxPageRes">
+        SELECT DISTINCT
+        xpr.name, xpr.url, xpr.src
+        FROM
+        ( SELECT role_id, user_id FROM sys_user_role ) sur
+        INNER JOIN ( SELECT role_id, res_id FROM xcx_role_res ) xrr ON sur.role_id = xrr.role_id
+        INNER JOIN ( SELECT * FROM xcx_page_res ) xpr ON xrr.res_id = xpr.id
+        WHERE
+        sur.user_id = #{uid}
+    </select>
+</mapper>
+

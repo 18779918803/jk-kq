@@ -1,0 +1,150 @@
+package com.jk.api.controller;
+
+import com.jk.api.service.ApiService;
+import com.jk.api.service.impl.WriteOffApiService;
+import com.jk.api.util.PushMsg;
+import com.jk.common.annotation.KrtIgnoreAuth;
+import com.jk.common.base.BaseController;
+import com.jk.common.bean.ReturnBean;
+import com.jk.common.bean.ReturnCode;
+import com.jk.common.exception.KrtException;
+import com.jk.common.util.DateUtils;
+import com.jk.kq.entity.WriteoffRecord;
+import com.jk.kq.service.IWorkTypeService;
+import com.jk.kq.service.IWriteoffRecordService;
+import com.jk.kq.utils.TaskUtilService;
+import com.jk.sys.entity.Organ;
+import com.jk.sys.entity.User;
+import com.jk.sys.service.IOrganService;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * 核销记录的微信小程序API接口
+ *
+ * @author 何任鹏
+ * @version 1.0
+ * @date 2020年06月01日
+ */
+@Slf4j
+@Controller
+@RestController
+@RequestMapping("api/writeoff")
+public class ApiWriteoffController extends BaseController {
+
+
+    @Autowired
+    private IWriteoffRecordService writeoffRecordService;
+
+    @Autowired
+    private ApiService apiService;
+
+    @Autowired
+    private IWorkTypeService workTypeService;
+
+    @Autowired
+    private WriteOffApiService writeOffApiService;
+
+    @Autowired
+    private PushMsg pushMsg;
+
+    @Autowired
+    private IOrganService organService;
+
+    @Autowired
+    TaskUtilService taskUtilService;
+
+    /**
+     * 查找所有的核销记录，可以按照月份查找
+     * @param date
+     * @return
+     */
+    @KrtIgnoreAuth
+    @PostMapping("list")
+    public ReturnBean list(@RequestParam("date") String date)   {
+        User openUser = apiService.getUser(request);
+        List<Map> writeoffRecords = writeoffRecordService.selectHistory(openUser.getId(), date);
+        for (Map writeoffRecord : writeoffRecords) {
+            String instanceId = (String)writeoffRecord.get("instanceId");
+            Map<String, Integer> end = taskUtilService.isEnd(instanceId);
+            Integer isEnd = end.get("isEnd");
+            Integer typeId = (Integer) writeoffRecord.get("typeId");
+            if (isEnd.equals(2)){
+                writeoffRecord.put("statusName", "审批中");
+            }else {
+                writeoffRecord.put("statusName", "审批结束");
+            }
+            if( typeId == 1 ){
+                writeoffRecord.put("typeName", "核销上班卡");
+            }else if( typeId == 2 ){
+                writeoffRecord.put("typeName", "核销下班卡");
+            }
+            writeoffRecord.remove("instanceId");
+        }
+        return ReturnBean.ok(writeoffRecords);
+    }
+
+//    /**
+//     * 查找所有的核销记录类型
+//     *
+//     * @return
+//     */
+//    @KrtIgnoreAuth
+//    @GetMapping("type")
+//    public ReturnBean types() {
+//        List<WorkType> writeoffTypes = workTypeService.selectByPid(WorkTypeConfig.WRITEOFF);
+//        return ReturnBean.ok(writeoffTypes);
+//    }
+
+
+    /**
+     * 新增用户核销申请
+     *
+     * @return
+     */
+    @KrtIgnoreAuth
+    @PostMapping("insert")
+    @Transactional
+    public ReturnBean insert(@RequestParam("date") String date, @RequestParam("type") Integer type, @RequestParam("reason") String reason)   {
+        User user = apiService.getUser(request);
+
+        int level = apiService.selectRole(user.getRoles());
+        if (level == 0) {
+            throw new KrtException(ReturnBean.error(ReturnCode.INVALID_REQUEST.getCode(),
+                    "发起申请人角色无定义"));
+        }
+        //判断当前用户的角色
+        Map<String, Object> map = new HashMap<>();
+        map.put("writeoff", level);
+
+        Organ organ = organService.selectById(user.getOrganId());
+
+        WriteoffRecord writeoff = new WriteoffRecord();
+        writeoff.setTypeId(type);
+        writeoff.setDate(DateUtils.stringToDate("yyyy-MM-dd", date));
+        writeoff.setReason(reason);
+        writeoff.setUserId(user.getId());
+        writeoff.setName(user.getName());
+        writeoff.setOrgan(organ.getName());
+        writeoff.setOrganId(user.getOrganId());
+        writeoff.setInserter(user.getId());
+        writeoffRecordService.insert(writeoff);
+        writeoffRecordService.submitApply(writeoff, user.getId().toString(), "writeoff", map);
+
+        WriteoffRecord  writeoffRecord=writeoffRecordService.selectById(writeoff.getId());
+        List<User> ids = apiService.nextHandel(writeoffRecord.getInstanceId());
+        pushMsg.push(ids,"核销申请", reason);
+        return ReturnBean.ok();
+    }
+
+}

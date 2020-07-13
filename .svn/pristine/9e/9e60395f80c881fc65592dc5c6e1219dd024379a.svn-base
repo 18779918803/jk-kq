@@ -1,0 +1,17 @@
+package com.jk.db.service;
+
+import com.jk.common.base.IBaseService;
+import com.jk.db.entity.DbFeedback;
+
+
+/**
+ * 督查督办情况反馈表服务接口层
+ *
+ * @author 刘杭
+ * @version 1.0
+ * @date 2020年06月08日
+ */
+public interface IDbFeedbackService extends IBaseService<DbFeedback> {
+
+
+}

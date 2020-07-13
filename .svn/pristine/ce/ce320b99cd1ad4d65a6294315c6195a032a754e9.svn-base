@@ -1,0 +1,65 @@
+package com.jk.api.service.impl;
+
+
+import com.jk.api.dto.WriteoffRecordDTO;
+import com.jk.api.service.ApiService;
+import com.jk.common.bean.ReturnBean;
+import com.jk.common.bean.ReturnCode;
+import com.jk.common.exception.KrtException;
+import com.jk.kq.common.GeneralConvertor;
+import com.jk.kq.entity.WriteoffRecord;
+import com.jk.kq.service.IWriteoffRecordService;
+import com.jk.sys.entity.Organ;
+import com.jk.sys.entity.User;
+import com.jk.sys.service.IOrganService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.HashMap;
+import java.util.Map;
+
+@Service
+public class WriteOffApiService {
+
+    @Autowired
+    private IWriteoffRecordService writeoffRecordService;
+
+    @Autowired
+    private GeneralConvertor convertor;
+
+    @Autowired
+    private IOrganService organService;
+
+    @Autowired
+    private ApiService apiService;
+
+    /**
+     * 发起核销
+     *
+     * @param openUser
+     * @param dto
+     * @
+     */
+    @Transactional
+    public Integer addWriteOff(User openUser, WriteoffRecordDTO dto)   {
+        int writeoff = apiService.selectRole(openUser.getRoles());
+        if (writeoff == 0) {
+            throw new KrtException(ReturnBean.error(ReturnCode.INVALID_REQUEST.getCode(),
+                    "发起申请人角色无定义"));
+        }
+        //判断当前用户的角色
+        Map<String, Object> map = new HashMap<>();
+        map.put("writeoff", writeoff);
+        WriteoffRecord convertor = this.convertor.convertor(dto, WriteoffRecord.class);
+        Organ organ = organService.selectById(openUser.getOrganId());
+        convertor.setOpenUserId(openUser.getId());
+        convertor.setName(openUser.getName());
+        convertor.setOrgan(organ.getName());
+        convertor.setOrganId(openUser.getOrganId());
+        convertor.setInserter(openUser.getId());
+        writeoffRecordService.insert(convertor);
+        writeoffRecordService.submitApply(convertor, openUser.getName(), "writeoff", map);
+        return convertor.getId();
+    }
+}

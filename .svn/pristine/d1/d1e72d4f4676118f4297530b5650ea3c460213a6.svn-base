@@ -1,0 +1,99 @@
+package com.jk.kq.service.impl;
+
+import com.jk.common.base.BaseServiceImpl;
+import com.jk.kq.common.GeneralConvertor;
+import com.jk.kq.entity.OpenUser;
+import com.jk.kq.entity.Position;
+import com.jk.kq.entity.dto.OverTimeRecordDTO;
+import com.jk.kq.mapper.OpenUserMapper;
+import com.jk.kq.service.IPositionService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import com.jk.kq.entity.OvertimeRecord;
+import com.jk.kq.mapper.OvertimeRecordMapper;
+import com.jk.kq.service.IOvertimeRecordService;
+
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Map;
+
+
+/**
+ * 加班申请服务接口实现层
+ *
+ * @author 何任鹏
+ * @version 1.0
+ * @date 2020年06月01日
+ */
+@Service
+public class OvertimeRecordServiceImpl extends BaseServiceImpl<OvertimeRecordMapper, OvertimeRecord> implements IOvertimeRecordService {
+
+    @Autowired
+    private OvertimeRecordMapper overtimeRecordMapper;
+
+    @Autowired
+    private IPositionService positionService;
+
+    @Autowired
+    private OpenUserMapper openUserMapper;
+
+    @Autowired
+    private GeneralConvertor convertor;
+
+    /**
+     * 通过OpenUserId查找当月用户的加班记录
+     * @param id
+     * @param date
+     * @return
+     */
+    @Override
+    public List<OvertimeRecord> selectByUserIdAndDate(Long id, LocalDate start,LocalDate end) {
+        return overtimeRecordMapper.selectByUserIdAndDate(id, start,end);
+    }
+
+    /**
+     * 新增加班申请记录
+     * 在这里应该查找自己的上一级领导，将待审核的模板消息推送给他
+     * @param openUser
+     * @param dto
+     * @return  返回该申请需要推送的用户的集合
+     */
+    @Override
+    public List<OpenUser> insert(OpenUser openUser, OverTimeRecordDTO dto) {
+        dto.setUserId(openUser.getId());
+        dto.setName(openUser.getName());
+        dto.setOrganId(openUser.getOrganId());
+        dto.setOrgan(openUser.getOrgan());
+        //查找用户的职位信息
+        Position position = positionService.selectById(openUser.getPositionId());
+        //用户的申请初始状态等于用户的职位审批等级
+        dto.setState(position.getGrade());
+        //集团部门加班、核销一般员工呈部门负责人和分管领导审批，部门负责人呈分管领导审批
+        List<OpenUser> checkList = null;
+        if (position.getGrade() <= 1) {
+            dto.setTopState(2);
+            //如果员工是普通员工，直接查找同部门的部门负责人进行推送
+            if (position.getGrade() == 0) {
+                //给同部门的上一级领导审批
+                checkList = openUserMapper.selectOpenUser(openUser.getOrganId(), position.getGrade() + 1);
+            } else if (position.getGrade() == 1) {
+                //如果是公司部门负责人，那么查找分管领导进行推送
+                checkList = openUserMapper.selectLeaders(openUser.getOrganId(), position.getGrade() + 1);
+            }
+            //集团分管领导不走审批
+        }
+        OvertimeRecord entity = this.convertor.convertor(dto, OvertimeRecord.class);
+        overtimeRecordMapper.insert(entity);
+        return checkList;
+    }
+
+    /**
+     * 查找用户可以审核的加班申请
+     * @param queryMap
+     * @return
+     */
+    @Override
+    public List selectToCheck(Map queryMap) {
+        return overtimeRecordMapper.selectToCheck(queryMap);
+    }
+}

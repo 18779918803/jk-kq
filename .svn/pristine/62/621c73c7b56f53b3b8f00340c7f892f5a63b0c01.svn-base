@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jk.kq.mapper.HolidayMapper">
+
+    <sql id="Base_Column_List">
+        id,start,end,remark,inserter,insert_time,updater,update_time
+    </sql>
+
+    <!-- 带参数查询法定节假日列表 -->
+    <select id="selectPageList" resultType="com.jk.kq.entity.Holiday">
+        select
+        <include refid="Base_Column_List"/>
+        from jk_holiday where 1=1
+        <if test="startDate != null and startDate != '' or endDate == null and endDate == ''">
+            and date(date) &gt;= #{startDate}
+        </if>
+        <if test="endDate != null and endDate != '' or startDate == null and startDate == ''">
+            and date(date) &lt;= #{endDate}
+        </if>
+        <if test="startDate != null and startDate != '' and endDate != null and endDate != ''">
+            and date(date) between #{startDate} and #{endDate}
+        </if>
+    </select>
+
+    <!--查询所有的集合-->
+    <select id="selectList" resultType="java.util.Map">
+        select date(date) date from jk_holiday
+    </select>
+
+    <!-- 导出数据 -->
+    <select id="selectExcelList" resultType="java.util.Map">
+        select
+        id,date,remark,'1'
+        from jk_holiday
+    </select>
+
+    <select id="selectHoliday" resultType="com.jk.kq.entity.Holiday">
+        select
+          start, end, type
+        from jk_holiday
+        where
+          end >= DATE_SUB(CONCAT(#{date}, '-15'), INTERVAL 1 MONTH)
+          and
+          DATE_SUB(CONCAT(#{date}, '-15'), INTERVAL -1 MONTH) >= end
+    </select>
+
+
+    <select id="isHoliday" resultType="com.jk.kq.entity.Holiday">
+        select
+          *
+        from jk_holiday
+        where 1=1
+          and end >= #{date}
+          and #{date} >= start
+        limit 1
+    </select>
+</mapper>
+

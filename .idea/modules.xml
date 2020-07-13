@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/jk.iml" filepath="$PROJECT_DIR$/jk.iml" />
+      <module fileurl="file://$PROJECT_DIR$/jk-activiti/jk-activiti.iml" filepath="$PROJECT_DIR$/jk-activiti/jk-activiti.iml" />
+      <module fileurl="file://$PROJECT_DIR$/jk-api/jk-api.iml" filepath="$PROJECT_DIR$/jk-api/jk-api.iml" />
+      <module fileurl="file://$PROJECT_DIR$/jk-common/jk-common.iml" filepath="$PROJECT_DIR$/jk-common/jk-common.iml" />
+      <module fileurl="file://$PROJECT_DIR$/jk-db/jk-db.iml" filepath="$PROJECT_DIR$/jk-db/jk-db.iml" />
+      <module fileurl="file://$PROJECT_DIR$/jk-framework/jk-framework.iml" filepath="$PROJECT_DIR$/jk-framework/jk-framework.iml" />
+      <module fileurl="file://$PROJECT_DIR$/jk-gen/jk-gen.iml" filepath="$PROJECT_DIR$/jk-gen/jk-gen.iml" />
+      <module fileurl="file://$PROJECT_DIR$/jk-kq/jk-kq.iml" filepath="$PROJECT_DIR$/jk-kq/jk-kq.iml" />
+      <module fileurl="file://$PROJECT_DIR$/jk-monitor/jk-monitor.iml" filepath="$PROJECT_DIR$/jk-monitor/jk-monitor.iml" />
+      <module fileurl="file://$PROJECT_DIR$/jk-plugins/jk-plugin-activemq/jk-plugin-activemq.iml" filepath="$PROJECT_DIR$/jk-plugins/jk-plugin-activemq/jk-plugin-activemq.iml" />
+      <module fileurl="file://$PROJECT_DIR$/jk-plugins/jk-plugin-captcha/jk-plugin-captcha.iml" filepath="$PROJECT_DIR$/jk-plugins/jk-plugin-captcha/jk-plugin-captcha.iml" />
+      <module fileurl="file://$PROJECT_DIR$/jk-plugins/jk-plugin-ehcache/jk-plugin-ehcache.iml" filepath="$PROJECT_DIR$/jk-plugins/jk-plugin-ehcache/jk-plugin-ehcache.iml" />
+      <module fileurl="file://$PROJECT_DIR$/jk-plugins/jk-plugin-file/jk-plugin-file.iml" filepath="$PROJECT_DIR$/jk-plugins/jk-plugin-file/jk-plugin-file.iml" />
+      <module fileurl="file://$PROJECT_DIR$/jk-plugins/jk-plugin-jpush/jk-plugin-jpush.iml" filepath="$PROJECT_DIR$/jk-plugins/jk-plugin-jpush/jk-plugin-jpush.iml" />
+      <module fileurl="file://$PROJECT_DIR$/jk-plugins/jk-plugin-mail/jk-plugin-mail.iml" filepath="$PROJECT_DIR$/jk-plugins/jk-plugin-mail/jk-plugin-mail.iml" />
+      <module fileurl="file://$PROJECT_DIR$/jk-plugins/jk-plugin-oauth2/jk-plugin-oauth2.iml" filepath="$PROJECT_DIR$/jk-plugins/jk-plugin-oauth2/jk-plugin-oauth2.iml" />
+      <module fileurl="file://$PROJECT_DIR$/jk-plugins/jk-plugin-quartz/jk-plugin-quartz.iml" filepath="$PROJECT_DIR$/jk-plugins/jk-plugin-quartz/jk-plugin-quartz.iml" />
+      <module fileurl="file://$PROJECT_DIR$/jk-plugins/jk-plugin-redis/jk-plugin-redis.iml" filepath="$PROJECT_DIR$/jk-plugins/jk-plugin-redis/jk-plugin-redis.iml" />
+      <module fileurl="file://$PROJECT_DIR$/jk-plugins/jk-plugin-websocket/jk-plugin-websocket.iml" filepath="$PROJECT_DIR$/jk-plugins/jk-plugin-websocket/jk-plugin-websocket.iml" />
+      <module fileurl="file://$PROJECT_DIR$/jk-plugins/jk-plugin-wxpush/jk-plugin-wxpush.iml" filepath="$PROJECT_DIR$/jk-plugins/jk-plugin-wxpush/jk-plugin-wxpush.iml" />
+      <module fileurl="file://$PROJECT_DIR$/jk-plugins/jk-plugins.iml" filepath="$PROJECT_DIR$/jk-plugins/jk-plugins.iml" />
+      <module fileurl="file://$PROJECT_DIR$/jk-sw/jk-sw.iml" filepath="$PROJECT_DIR$/jk-sw/jk-sw.iml" />
+      <module fileurl="file://$PROJECT_DIR$/jk-sys/jk-sys.iml" filepath="$PROJECT_DIR$/jk-sys/jk-sys.iml" />
+      <module fileurl="file://$PROJECT_DIR$/jk-web/jk-web.iml" filepath="$PROJECT_DIR$/jk-web/jk-web.iml" />
+      <module fileurl="file://$PROJECT_DIR$/jk-xcx/jk-xcx.iml" filepath="$PROJECT_DIR$/jk-xcx/jk-xcx.iml" />
+    </modules>
+  </component>
+</project>

@@ -1,0 +1,339 @@
+package com.jk.api.controller;
+
+import com.jk.activiti.service.IProcessService;
+import com.jk.api.dto.CheckDTO;
+import com.jk.api.enums.TypeEnums;
+import com.jk.api.service.ApiService;
+import com.jk.api.util.SendWeChatUtil;
+import com.jk.common.annotation.KrtIgnoreAuth;
+import com.jk.common.bean.ReturnBean;
+import com.jk.common.bean.ReturnCode;
+import com.jk.common.exception.KqException;
+import com.jk.kq.common.GeneralConvertor;
+import com.jk.kq.entity.*;
+import com.jk.kq.entity.vo.LeaveRecordVO;
+import com.jk.kq.entity.vo.WriteoffRecordVo;
+import com.jk.kq.service.*;
+import com.jk.sys.entity.User;
+import lombok.extern.slf4j.Slf4j;
+import org.activiti.engine.TaskService;
+import org.activiti.engine.impl.persistence.entity.TaskEntityImpl;
+import org.activiti.engine.task.Task;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.CollectionUtils;
+import org.springframework.util.ObjectUtils;
+import org.springframework.web.bind.annotation.*;
+
+import javax.servlet.http.HttpServletRequest;
+import java.util.*;
+
+/**
+ * 和领导审核相关的微信小程序API接口
+ *
+ * @author 何任鹏
+ * @version 1.0
+ * @date 2020年06月02日
+ */
+@RestController
+@RequestMapping("api/wechat/kq")
+@Slf4j
+public class CheckApi {
+
+    @Autowired
+    private IOpenUserService openUserService;
+
+    @Autowired
+    private ApiService apiService;
+
+
+    @Autowired
+    private IOvertimeRecordService overtimeRecordService;
+
+    @Autowired
+    private ILeaveRecordService leaveRecordService;
+
+    @Autowired
+    private IWriteoffRecordService writeoffRecordService;
+
+    @Autowired
+    private ITravelRecordService travelRecordService;
+
+    @Autowired
+    private ICheckService checkService;
+
+    @Autowired
+    private SendWeChatUtil sendWeChatUtil;
+
+    @Autowired
+    private GeneralConvertor convertor;
+
+    @Autowired
+    private IWorkTypeService workTypeService;
+
+    @Autowired
+    private IProcessService processService;
+
+    @Autowired
+    private TaskService taskService;
+
+    /**
+     * 获取所有的审核列表按照日期和搜索条件
+     * @return
+     */
+    @KrtIgnoreAuth
+    @GetMapping("record/list")
+    public ReturnBean applicationList(HttpServletRequest request, CheckDTO dto) throws KqException {
+        User openUser = apiService.getOpenUser(request);
+        if (ObjectUtils.isEmpty(dto.getTypePId())){
+            return ReturnBean.error(
+                    ReturnCode.INVALID_REQUEST.getCode(),"typeId为空"
+            );
+        }
+        Map map = new HashMap();
+        //查询加班
+        if (TypeEnums.LEAVE.getStatus().equals(dto.getTypePId())) {
+            map.put("type", TypeEnums.LEAVE.name().toLowerCase());
+            List<LeaveRecord> page = leaveRecordService.findTodoTasks(openUser.getUsername(), map);
+            List<LeaveRecordVO> convertor = this.convertor.convertor(page, LeaveRecordVO.class);
+            convertor.forEach(
+                    vo -> {
+                        Integer typeId = vo.getTypeId();
+                        WorkType workType = workTypeService.selectById(typeId);
+                        vo.setPid(dto.getTypePId());
+                        vo.setTypeName(workType.getName());
+                    }
+            );
+            return ReturnBean.ok(convertor);
+        }else if (TypeEnums.WRITEOFF.getStatus().equals(dto.getTypePId())){
+            map.put("type", TypeEnums.WRITEOFF.name().toLowerCase());
+            List<WriteoffRecord> todoTasks = writeoffRecordService.findTodoTasks(openUser.getUsername(), map);
+            List<WriteoffRecordVo> convertor = this.convertor.convertor(todoTasks, WriteoffRecordVo.class);
+            convertor.forEach(
+                    vo -> {
+                        Integer typeId = vo.getTypeId();
+                        WorkType workType = workTypeService.selectById(typeId);
+                        vo.setPid(dto.getTypePId());
+                        vo.setTypeName(workType.getName());
+                    }
+            );
+            return ReturnBean.ok(convertor);
+        }
+        return ReturnBean.ok();
+
+    }
+
+    /**
+     * 获取单个记录的审批流程记录
+     * @param pid 类型id typeenums
+     * @param id 业务主键
+     * @return
+     */
+    @KrtIgnoreAuth
+    @GetMapping("check/detail")
+    public ReturnBean list(Integer pid, Integer id) {
+        if (ObjectUtils.isEmpty(pid)){
+            return ReturnBean.error(ReturnCode.INVALID_REQUEST);
+        }
+        if (ObjectUtils.isEmpty(id)){
+            return ReturnBean.error(ReturnCode.INVALID_REQUEST);
+        }
+        LeaveRecordVO leaveRecordVO = checkService.getcurrentRecordDetail(pid, id);
+        return ReturnBean.ok(leaveRecordVO);
+    }
+
+    /**
+     * 通过申请，也要推送用户，如果审批结束，推送给申请人，审批未结束，推送给下一个审批人
+     *
+     * @return
+     */
+    @KrtIgnoreAuth
+    @PostMapping("record/pass")
+    public ReturnBean pass(HttpServletRequest request, @RequestBody Map map) throws KqException {
+        User openUser = apiService.getOpenUser(request);
+        Integer pid = (Integer) map.get("pid");
+        Integer id = (Integer) map.get("id");
+        if (ObjectUtils.isEmpty(map.get("id"))) {
+            log.error("id为空");
+            return ReturnBean.error(ReturnCode.INVALID_REQUEST);
+        }
+        if (ObjectUtils.isEmpty(map.get("pid"))) {
+            log.error("pid为空");
+            return ReturnBean.error(ReturnCode.INVALID_REQUEST);
+        }
+        if (TypeEnums.WRITEOFF.getStatus().equals(pid)){
+            writeoffRecordService.approval(id,openUser,request);
+        }else if (TypeEnums.LEAVE.getStatus().equals(pid)){
+            leaveRecordService.approval(id,openUser,request);
+        }
+        //修改申请记录上的state字段，维护申请状态，推送消息
+//        doPassOrReject(pid, id, state, openUser);
+        //添加一条审核记录
+//        checkService.addCheckProcess(pid, id, openUser.getId(), state, new Date());
+        return ReturnBean.ok();
+    }
+
+    /**
+     * 拒绝申请，也要推送用户，申请拒绝，直接结束审批流程，推送消息给申请人
+     *
+     * @return
+     */
+    @KrtIgnoreAuth
+    @PostMapping("record/reject")
+    public ReturnBean reject(HttpServletRequest request, @RequestBody Map map) throws KqException {
+        User openUser = apiService.getOpenUser(request);
+//        Position position = positionService.selectById(openUser.getPositionId());
+//        Integer state = position.getGrade() * -1;
+        Integer pid = (Integer) map.get("pid");
+        Integer id = (Integer) map.get("id");
+        //修改申请记录上的state字段，维护申请状态，推送消息
+//        doPassOrReject(pid, id, state, openUser);
+        //添加一条审核记录
+//        checkService.addCheckProcess(pid, id, openUser.getId(), state, new Date());
+        return ReturnBean.ok();
+    }
+
+    /**
+     * 封装审批通过或者拒绝的方法，主要是维护申请记录表中的state字段
+     *
+     * @param pid      申请类型
+     * @param id       申请id
+     * @param state    审批状态
+     * @param openUser 审核用户，（注意区分申请用户 和 审核用户）
+     */
+    private void doPassOrReject(Integer pid, Integer id, Integer state, OpenUser openUser) {
+        switch (pid) {
+            //加班申请通过或拒绝
+            case 1:
+                OvertimeRecord overtimeRecord = overtimeRecordService.selectById(id);
+                overtimeRecord.setState(state);
+                overtimeRecordService.updateById(overtimeRecord);
+                //修改申请状态之后，如果申请状态和申请最终状态相等，或者小于0，那么代表申请审批结束，
+                //我们直接获取申请人的公众号openid，推送消息给他（审批结束）
+                if (overtimeRecord.getState().equals(overtimeRecord.getTopState()) || overtimeRecord.getState() < 0) {
+                    //获取申请用户的微信公众号的openid
+                    String gzhOpenId = openUserService.getGzhOpenId(overtimeRecord.getUserId());
+                    //推送结束消息
+                    doSendEndMessage(gzhOpenId, overtimeRecord.getState(), overtimeRecord.getReason());
+                } else {
+                    doSendCheckMessage(overtimeRecord.getState(), overtimeRecord.getOrganId(), "加班申请", overtimeRecord.getReason());
+                }
+                break;
+            //请假申请通过或拒绝
+            case 2:
+                LeaveRecord leaveRecord = leaveRecordService.selectById(id);
+                leaveRecord.setState(state);
+                leaveRecordService.updateById(leaveRecord);
+                //修改申请状态之后，如果申请状态和申请最终状态相等，或者小于0，那么代表申请审批结束，
+                //我们直接获取申请人的公众号openid，推送消息给他（审批结束）
+                if (leaveRecord.getState().equals(leaveRecord.getTopState()) || leaveRecord.getState() < 0) {
+                    //获取申请用户的微信公众号的openid
+                    String gzhOpenId = openUserService.getGzhOpenId(leaveRecord.getOpenUserId());
+                    //推送结束消息
+                    doSendEndMessage(gzhOpenId, leaveRecord.getState(), leaveRecord.getReason());
+                } else {
+                    doSendCheckMessage(leaveRecord.getState(), leaveRecord.getOrganId(), "请假申请", leaveRecord.getReason());
+                }
+                break;
+            //核销申请通过或拒绝
+            case 3:
+                WriteoffRecord writeoffRecord = writeoffRecordService.selectById(id);
+                writeoffRecord.setState(state);
+                writeoffRecordService.updateById(writeoffRecord);
+                //修改申请状态之后，如果申请状态和申请最终状态相等，或者小于0，那么代表申请审批结束，
+                //我们直接获取申请人的公众号openid，推送消息给他（审批结束）
+                if (writeoffRecord.getState().equals(writeoffRecord.getTopState()) || writeoffRecord.getState() < 0) {
+                    //获取申请用户的微信公众号的openid
+                    String gzhOpenId = openUserService.getGzhOpenId(writeoffRecord.getOpenUserId());
+                    //推送结束消息
+                    doSendEndMessage(gzhOpenId, writeoffRecord.getState(), writeoffRecord.getReason());
+                } else {
+                    doSendCheckMessage(writeoffRecord.getState(), writeoffRecord.getOrganId(), "核销申请", writeoffRecord.getReason());
+                }
+                break;
+            //出差申请通过或拒绝
+            case 4:
+                TravelRecord travelRecord = travelRecordService.selectById(id);
+                travelRecord.setState(state);
+                travelRecordService.updateById(travelRecord);
+                //修改申请状态之后，如果申请状态和申请最终状态相等，或者小于0，那么代表申请审批结束，
+                //我们直接获取申请人的公众号openid，推送消息给他（审批结束）
+                if (travelRecord.getState().equals(travelRecord.getTopState()) || travelRecord.getState() < 0) {
+                    //获取申请用户的微信公众号的openid
+                    String gzhOpenId = openUserService.getGzhOpenId(travelRecord.getOpenUserId());
+                    //推送结束消息
+                    doSendEndMessage(gzhOpenId, travelRecord.getState(), travelRecord.getReason());
+                } else {
+                    doSendCheckMessage(travelRecord.getState(), travelRecord.getOrganId(), "出差申请", travelRecord.getReason());
+                }
+                break;
+            default:
+//                String openId = openUserService.getGzhOpenId(openUser.getId());
+                //原本是想将错误消息推送给审批人，但是在这里改为了直接推送给缪隽峰
+                sendWeChatUtil.sendMessage("o_9hBwwFG5oD7FgKnvgX9g2ldAOY", "程序出问题了！",
+                        "无", "无", "您好，程序似乎出现了一点小问题，请管理员前往调试！",
+                        "点击查看详情", "页面跳转路径（项目上线后填入路径）");
+
+        }
+    }
+
+    /**
+     * 结束消息
+     *
+     * @param gzhOpenId
+     * @param state
+     * @param reasonText
+     */
+    private void doSendEndMessage(String gzhOpenId, Integer state, String reasonText) {
+        //推送消息
+        String stateText = "";
+        if (state > 0) {
+            stateText = "审批通过！";
+        } else {
+            stateText = "审批拒绝！";
+        }
+        if (gzhOpenId != null && !"".equals(gzhOpenId)) {
+            sendWeChatUtil.sendMessage(gzhOpenId, "您好，您的审批已经结束!",
+                    "", stateText, reasonText,
+                    "点击查看详情", "页面跳转路径（项目上线后填入路径）");
+        }
+    }
+
+    /**
+     * 继续审批流程消息
+     *
+     * @param state
+     * @param organId
+     * @param name
+     * @param reasonText
+     */
+    private void doSendCheckMessage(Integer state, Integer organId, String name, String reasonText) {
+        List<OpenUser> checkList = null;
+        //表示审批已通过，但是还需要进入下一个审批流程
+        Integer nextState = state + 1;
+        //如果下一个审批等级是分管领导
+        if (nextState == 2) {
+            checkList = openUserService.selectOpenUser(organId, nextState);
+        } else if (nextState == 3) {
+            //如果下一个等级为集团总经理
+            checkList = openUserService.selectOpenUser(null, nextState);
+        } else if (nextState == 4) {
+            //如果下一个等级为董事长
+            checkList = openUserService.selectOpenUser(null, nextState);
+        }
+        //只有推送用户不为空的时候，才会进行推送，其他情况默认不推送
+        if (checkList != null) {
+            List<String> gzhOpenIds = openUserService.getGzhOpenIds(checkList);
+            for (String gzhOpenId : gzhOpenIds) {
+                //多重保险，不为空的时候才进行推送
+                if (gzhOpenId != null && !"".equals(gzhOpenId)) {
+                    sendWeChatUtil.sendMessage(gzhOpenId, "您好，您有一个员工申请待审批!",
+                            name, "待审批", reasonText,
+                            "点击查看详情", "页面跳转路径（项目上线后填入路径）");
+                }
+            }
+        }
+
+    }
+
+
+}

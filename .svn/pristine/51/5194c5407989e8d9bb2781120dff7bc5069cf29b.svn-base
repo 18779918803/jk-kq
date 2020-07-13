@@ -1,0 +1,168 @@
+package com.jk.activiti.service.impl;
+
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.github.pagehelper.Page;
+import com.jk.activiti.domain.BizLeaveVo;
+import com.jk.activiti.domain.Leave;
+import com.jk.activiti.mapper.LeaveMapper;
+import com.jk.activiti.page.PageDomain;
+import com.jk.activiti.page.TableSupport;
+import com.jk.activiti.service.ILeaveService;
+import com.jk.activiti.service.IProcessService;
+import com.jk.activiti.utils.DateUtils;
+import com.jk.activiti.utils.StringUtils;
+import com.jk.common.base.BaseServiceImpl;
+import com.jk.common.bean.PageHelper;
+import com.jk.common.bean.Query;
+import com.jk.common.exception.KqException;
+import com.jk.sys.entity.User;
+import com.jk.sys.service.IUserService;
+import org.activiti.engine.HistoryService;
+import org.activiti.engine.RuntimeService;
+import org.activiti.engine.TaskService;
+import org.activiti.engine.history.HistoricProcessInstance;
+import org.activiti.engine.history.HistoricTaskInstance;
+import org.activiti.engine.impl.persistence.entity.TaskEntityImpl;
+import org.activiti.engine.runtime.ProcessInstance;
+import org.activiti.engine.task.Task;
+import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+
+/**
+ * 请假服务接口实现层
+ *
+ * @author 晏攀林
+ * @version 1.0
+ * @date 2020年06月03日
+ */
+@Service
+public class LeaveServiceImpl extends BaseServiceImpl<LeaveMapper, Leave> implements ILeaveService {
+
+    @Autowired
+    private LeaveMapper leaveMapper;
+
+    @Autowired
+    private RuntimeService runtimeService;
+    @Autowired
+    private TaskService taskService;
+    @Autowired
+    private HistoryService historyService;
+
+    @Autowired
+    private IProcessService processService;
+
+
+    @Autowired
+    private IUserService  userService;
+
+
+    @Transactional
+    @Override
+    public ProcessInstance submitApply(Leave entity, String applyUserId, String key, Map<String, Object> variables) throws KqException {
+        entity.setApplyUser(applyUserId);
+        entity.setApplyTime(DateUtils.getNowDate());
+        entity.setUpdateBy(applyUserId);
+        leaveMapper.updateById(entity);
+        String businessKey = entity.getId().toString(); // 实体类 ID，作为流程的业务 key
+        ProcessInstance processInstance = processService.submitApply(applyUserId, businessKey, entity.getTitle(), entity.getReason(), key, variables);
+        String processInstanceId = processInstance.getId();
+        entity.setInstanceId(processInstanceId); // 建立双向关系
+        leaveMapper.updateById(entity);
+
+        return processInstance;
+    }
+
+    @Override
+    public IPage<Leave> findTodoTasks( String username,Map param) {
+
+        List<Leave> results = new ArrayList<>();
+        Query query = new Query(param);
+        com.baomidou.mybatisplus.extension.plugins.pagination.Page page = query.getPage();
+        PageHelper.startPage(page);
+        List<Task> tasks = processService.findTodoTasks(username, (String)param.get("type"));
+        // 根据流程的业务ID查询实体并关联
+        for (Task task : tasks) {
+            TaskEntityImpl taskImpl = (TaskEntityImpl) task;
+            String processInstanceId = taskImpl.getProcessInstanceId();
+            // 条件过滤 1
+            if (param.get("instanceId") != null && StringUtils.isNotBlank((CharSequence) param.get("instanceId")) && !param.get("instanceId").equals(processInstanceId)) {
+                continue;
+            }
+            ProcessInstance processInstance = runtimeService.createProcessInstanceQuery().processInstanceId(processInstanceId).singleResult();
+            String businessKey = processInstance.getBusinessKey();
+            Leave leave2 = leaveMapper.selectById(Integer.parseInt(businessKey));
+            // 条件过滤 2
+            if (StringUtils.isNotBlank((String) param.get("type")) && !param.get("type").equals(leave2.getType())) {
+                continue;
+            }
+            leave2.setTaskId(taskImpl.getId());
+            if (taskImpl.getSuspensionState() == 2) {
+                leave2.setTaskName("已挂起");
+            } else {
+                leave2.setTaskName(taskImpl.getName());
+            }
+
+            Integer userId = userService.getUserId(leave2.getApplyUser());
+            User user = userService.selectById(userId);
+
+
+            leave2.setApplyUserName(user.getName());
+            results.add(leave2);
+        }
+
+        page.setRecords(results);
+
+        return page;
+    }
+
+    @Override
+    public IPage findDoneTasks(Map para, String username) {
+        // 手动分页
+        PageDomain pageDomain = TableSupport.buildPageRequest();
+        Integer pageNum = pageDomain.getPageNum();
+        Integer pageSize = pageDomain.getPageSize();
+        Page<BizLeaveVo> list = new Page<>();
+
+        List<Leave> results = new ArrayList<>();
+        List<HistoricTaskInstance> hisList = processService.findDoneTasks(username, (String) para.get("type"));
+        // 根据流程的业务ID查询实体并关联
+        for (HistoricTaskInstance instance : hisList) {
+            String processInstanceId = instance.getProcessInstanceId();
+            // 条件过滤 1
+            if (para.get("instanceId") != null && StringUtils.isNotBlank((CharSequence) para.get("instanceId")) && !para.get("instanceId").equals(processInstanceId)) {
+                continue;
+            }
+            HistoricProcessInstance processInstance = historyService.createHistoricProcessInstanceQuery().processInstanceId(processInstanceId).singleResult();
+            String businessKey = processInstance.getBusinessKey();
+            Leave leave2 = leaveMapper.selectById(Integer.parseInt(businessKey));
+            Leave newLeave = new Leave();
+            BeanUtils.copyProperties(leave2, newLeave);
+            // 条件过滤 2
+            if (StringUtils.isNotBlank((String) para.get("type")) && !para.get("type").equals(leave2.getType())) {
+                continue;
+            }
+            newLeave.setTaskId(instance.getId());
+            newLeave.setTaskName(instance.getName());
+            newLeave.setDoneTime(instance.getEndTime());
+            Integer userId = userService.getUserId(leave2.getApplyUser());
+            User user = userService.selectById(userId);
+            newLeave.setApplyUserName(user.getName());
+            results.add(newLeave);
+        }
+
+        Query query = new Query(para);
+        com.baomidou.mybatisplus.extension.plugins.pagination.Page page = query.getPage();
+        PageHelper.startPage(page);
+        page.setRecords(results);
+        return page;
+    }
+
+
+}

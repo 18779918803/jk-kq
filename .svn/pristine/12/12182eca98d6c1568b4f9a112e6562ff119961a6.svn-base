@@ -1,0 +1,226 @@
+<#include "/common/layoutList.ftl">
+<@header></@header>
+<@body class="body-bg-default">
+<div class="wrapper">
+    <section class="content">
+            <!-- 搜索条件区 -->
+            <div class="box-search">
+                <div class="row row-search">
+                    <div class="col-xs-12">
+                        <form class="form-inline" action="">
+            <div class="form-group">
+                <label for="dbType" class="control-label ">督办类别:</label>
+                <input type="hidden" id="currentName" value="${currentUser.username}">
+    <div class="form-group">
+        <select class="form-control select2" style="width: 100%" id="dbType" name="dbType">
+            <option value="">==请选择==</option>
+                <@dic type="db_type" ; dicList>
+                    <#list dicList as item>
+                        <option value="${item.code}">${item.name}</option>
+                    </#list>
+                </@dic>
+        </select>
+    </div>
+            </div>
+            <div class="form-group">
+                <label for="dbId" class="control-label ">编号:</label>
+    <input type="text" id="dbId" name="dbId" placeholder="编号" class="form-control">
+            </div>
+                            <div class="form-group">
+                                <div class="text-center">
+                                    <button type="button" id="searchBtn" class="btn btn-primary btn-sm">
+                                        <i class="fa fa-search fa-btn"></i>搜索
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        <!-- 列表数据区 -->
+        <div class="box">
+            <div class="box-body">
+                <!-- 工具按钮区 -->
+                <div class="table-toolbar" id="table-toolbar">
+                    <@shiro.hasPermission name="feedback:dbFeedback:insert">
+                        <button title="添加" type="button" id="insertBtn" data-placement="left" data-toggle="tooltip" class="btn btn-success btn-sm">
+                            <i class="fa fa-plus"></i> 添加
+                        </button>
+                    </@shiro.hasPermission>
+                    <@shiro.hasPermission name="feedback:dbFeedback:delete">
+                        <button class="btn btn-sm btn-danger" id="deleteBatchBtn">
+                            <i class="fa fa-trash fa-btn"></i>批量删除
+                        </button>
+                    </@shiro.hasPermission>
+                </div>
+                <table id="datatable" class="table table-bordered table-hover"></table>
+            </div>
+        </div>
+    </section>
+</div>
+</@body>
+<@footer>
+<script type="text/javascript">
+    var datatable;
+    $(function () {
+        //初始化datatable
+        datatable = $('#datatable').DataTable({
+            ajax: {
+                url: "${basePath}/db/dbFeedback/list",
+                type: "post",
+                data: function (d) {
+                d.dbType = $("#dbType").val();
+                d.dbId = $("#dbId").val();
+    d.orderName = krt.util.camel2Underline(d.columns[d.order[0].column].data);
+    d.orderType = d.order[0].dir;
+                }
+            },
+            columns: [
+    {title: 'id', data: "id",visible:false},
+        {title: '<input type="checkbox" id="checkAll" class="icheck">',
+            data: "id", class:"td-center", width:"40",orderable: false,
+            render: function (data) {
+                return '<input type="checkbox" class="icheck check" value="' + data + '">';
+            }
+        },
+                {title: "序号",data: "id"},
+                {title: "督办类别",data: "dbType",
+                    render: function (data) {
+                        return krt.util.getDic('db_type',data);
+                    }
+                },
+                {title: "编号",data: "dbId"},
+                {title: "督办事项来源",data: "dbSource"},
+                {title: "事项内容及要求（简要）",data: "dbContentBrief"},
+                {title: "所涉事项要求办结期限",data: "dbAskFinaltime"},
+                {title: "重要程度（A,B,C）",data: "dbLevel",
+                    render: function (data) {
+                        return krt.util.getDic('db_level',data);
+                    }
+                },
+                {title: "牵头部门（公司）",data: "leadDepartment"},
+                {title: "责任部门（公司）",data: "responsibilityDepartment"},
+                {title: "实际完成时间",data: "totalTime"},
+                {title: "完成佐证（最终完成情况及佐证材料目录）",data: "finalEvidence"},
+                {title: "牵头部门负责人",data: "departmentPrincipal"},
+                {title: "牵头部门分管领导",data: "chargeLead"},
+                {title: "总经理意见",data: "managerAdvice"},
+                {title: "董事长意见",data: "presidentAdvice"},
+                {
+                    title: "操作", data: "id", orderable: false,
+                    "render": function (data, type, row) {
+                        return ' <@shiro.hasPermission name="feedback:dbFeedback:update">'
+                            + '<button class="btn btn-xs btn-warning updateBtn" rid="' + row.id + '">'
+                            + '<i class="fa fa-edit fa-btn"></i>修改'
+                            + '</button>'
+                            + '</@shiro.hasPermission>'
+                            + '<@shiro.hasPermission name="feedback:dbFeedback:delete">'
+                            + '<button class="btn btn-xs btn-danger deleteBtn" rid="' + row.id + '">'
+                            + '<i class="fa fa-trash fa-btn"></i>删除'
+                            + '</button>'
+                            + '</@shiro.hasPermission>'
+                            + '<@shiro.hasPermission name="feedback:dbFeedback:excelOut">'
+                            +'<button type="button" id="outExcelBtn" class="btn btn-xs bg-orange"  rid="' + row.id + '">'
+                            +'<i class="fa fa-cloud-download fa-btn"></i> 导出办结反馈表'
+                            + '</button>'
+                            + '</@shiro.hasPermission>'
+                            + '<@shiro.hasPermission name="feedback:dbFeedback:commit">'
+                            + '<button class="btn btn-xs btn-primary commitBtn" rid="' + row.id + '" createBy="' + row.createBy + '">'
+                            + '<i class="fa fa-trash fa-btn"></i>提交审核'
+                            + '</button>'
+                            + '</@shiro.hasPermission>';
+                    }
+                }
+            ]
+        });
+
+        //审批
+        $(document).on("click", ".commitBtn", function () {
+            var id = $(this).attr("rid");
+            var createBy = $(this).attr("createBy");
+            var username = $("#currentName").val();
+            if (createBy !== username) {
+                alert("不允许非创建人提交申请！");
+                return;
+            }
+
+            krt.layer.confirm("确认要提交申请吗？", function () {
+                krt.ajax({
+                    type: "POST",
+                    url: "${basePath}/db/dbFeedback/submitApply",
+                    data: {"id": id},
+                    success: function (rb) {
+                        krt.layer.msg(rb.msg);
+                        if (rb.code == 200) {
+                            krt.table.reloadTable();
+                        }
+                    }
+                });
+            });
+        });
+
+        //导出
+        $(document).on("click", "#outExcelBtn", function () {
+            var id = $(this).attr("rid");
+            window.location.href = "${basePath}/db/dbFeedback/excelOut?id="+id;
+        });
+
+        //搜索
+        $("#searchBtn").on('click', function () {
+            datatable.ajax.reload();
+        });
+
+        //新增
+        $("#insertBtn").click(function () {
+            top.krt.layer.openDialog("新增督查督办情况反馈表","${basePath}/db/dbFeedback/insert","1000px","500px");
+        });
+
+        //修改
+        $(document).on("click", ".updateBtn", function () {
+            var id = $(this).attr("rid");
+            top.krt.layer.openDialog("修改督查督办情况反馈表","${basePath}/db/dbFeedback/update?id=" + id,"1000px","500px");
+        });
+
+        //删除
+        $(document).on("click", ".deleteBtn", function () {
+            var id = $(this).attr("rid");
+            krt.layer.confirm("你确定删除吗？", function () {
+                krt.ajax({
+                    type: "POST",
+                    url: "${basePath}/db/dbFeedback/delete",
+                    data: {"id": id},
+                    success: function (rb) {
+                        krt.layer.msg(rb.msg);
+                        if (rb.code == 200) {
+                            krt.table.reloadTable();
+                        }
+                    }
+                });
+            });
+        });
+
+        //批量删除
+        $("#deleteBatchBtn").click(function () {
+            var ids = getIds();
+            if (ids == "") {
+                krt.layer.error("请选择要删除的数据!");
+                return false;
+            } else {
+                krt.layer.confirm("你确定删除吗？", function () {
+                    krt.ajax({
+                        type: "POST",
+                        url: "${basePath}/db/dbFeedback/deleteByIds",
+                        data: {"ids": ids},
+                        success: function (rb) {
+                            krt.layer.msg(rb.msg);
+                            if (rb.code == 200) {
+                                krt.table.reloadTable(ids);
+                            }
+                        }
+                    });
+                });
+            }
+        });
+    });
+</script>
+</@footer>

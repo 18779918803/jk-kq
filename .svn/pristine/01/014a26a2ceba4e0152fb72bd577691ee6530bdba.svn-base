@@ -1,0 +1,76 @@
+package com.jk.kq.entity;
+
+import com.baomidou.mybatisplus.annotation.TableName;
+import com.jk.common.base.BaseEntity;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import java.util.Date;
+import org.springframework.format.annotation.DateTimeFormat;
+import java.math.BigDecimal;
+
+/**
+ * 出差申请实体类
+ *
+ * @author 何任鹏
+ * @version 1.0
+ * @date 2020年06月01日
+ */
+@Data
+@NoArgsConstructor
+@EqualsAndHashCode(callSuper = false)
+@TableName("jk_travel_record")
+public class TravelRecord extends BaseEntity {
+
+    /**
+     * open_user_id
+     */
+    private Integer openUserId;
+
+    /**
+     * 姓名
+     */
+    private String name;
+
+    /**
+     * 公司ID/部门ID
+     */
+    private Integer organId;
+
+    /**
+     * 公司/部门
+     */
+    private String organ;
+
+    /**
+     * 出差日期
+     */
+    @DateTimeFormat(pattern = "yyyy-MM-dd")
+    private Date date;
+
+    /**
+     * 出差原因
+     */
+    private String reason;
+
+    /**
+     * 出差天数
+     */
+    private Double day;
+
+    /**
+     * 申请状态
+     */
+    private Integer state;
+
+    /**
+     * 申请审批完成状态
+     */
+    private Integer topState;
+
+    /**
+     * 出差类型
+     */
+    private Integer typeId;
+
+}

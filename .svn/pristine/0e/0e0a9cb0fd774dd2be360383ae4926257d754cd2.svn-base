@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jk.kq.mapper.ChekcMapper">
+
+    <!--新增一条审批记录-->
+    <insert id="addCheckProcess">
+        insert into jk_check_process(record_pid,record_id,open_user_id,check_state,insert_time)
+        values(#{pid},#{id},#{openUserId},#{checkState},#{insertTime});
+    </insert>
+
+    <!--获取单个记录的审批流程记录-->
+    <select id="getcurrentRecordDetail" resultType="java.util.Map">
+        select u.id,u.name,u.position_id,p.name pname,c.check_state,c.insert_time
+        from jk_overtime_record r
+        left join jk_check_process c on r.id = c.record_id
+        left join jk_open_user u on c.open_user_id = u.id
+        left join jk_position p on u.position_id = p.id
+        where c.record_pid = #{pid} and c.record_id = #{id}
+    </select>
+
+</mapper>
+

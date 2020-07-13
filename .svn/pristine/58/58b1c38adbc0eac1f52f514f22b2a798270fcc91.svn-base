@@ -1,0 +1,181 @@
+package com.jk.sw.service.impl;
+
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.jk.common.base.BaseServiceImpl;
+import com.jk.common.bean.PageHelper;
+import com.jk.common.bean.Query;
+import com.jk.common.bean.ReturnBean;
+import com.jk.common.exception.KrtException;
+import com.jk.common.util.ShiroUtils;
+import com.jk.kq.entity.OpenUser;
+import com.jk.kq.service.IOpenUserService;
+import com.jk.kq.service.IPositionService;
+import com.jk.sw.constant.SwConst;
+import com.jk.sw.entity.SwTask;
+import com.jk.sw.entity.SwUsable;
+import com.jk.sw.entity.dto.InstructionDTO;
+import com.jk.sw.service.ISwTaskService;
+import com.jk.sw.service.ISwUsableService;
+import com.jk.sys.entity.User;
+import com.jk.sys.entity.UserRole;
+import com.jk.sys.mapper.RoleMapper;
+import com.jk.sys.service.IUserRoleService;
+import com.jk.sys.service.IUserService;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import com.jk.sw.entity.SwProcess;
+import com.jk.sw.mapper.SwProcessMapper;
+import com.jk.sw.service.ISwProcessService;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.CollectionUtils;
+
+import javax.validation.constraints.NotNull;
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+
+
+/**
+ * 流程服务接口实现层
+ *
+ * @author 温龙飞
+ * @version 1.0
+ * @date 2020年06月11日
+ */
+@Service
+@Slf4j
+public class SwProcessServiceImpl extends BaseServiceImpl<SwProcessMapper, SwProcess> implements ISwProcessService {
+
+    @Autowired
+    private IPositionService positionService;
+
+    @Autowired
+    private ISwUsableService swUsableService;
+    @Autowired
+    private ISwTaskService swTaskService;
+    @Autowired
+    private IUserService userService;
+    @Autowired
+    private RoleMapper roleMapper;
+
+    @Override
+    public IPage processApproverList(Map para) {
+        Query query = new Query(para);
+        Page page = query.getPage();
+        PageHelper.startPage(page);
+        //List<User> list = userService.selectList(new QueryWrapper<User>().eq("position_id", 2));
+                //.or().eq("position_id", 3).or().eq("position_id", 4).or().eq("position_id", 5));
+
+        List<User> users = roleMapper.selectUsersByIsNotRoleId(28);
+        page.setRecords(users);
+        return page;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean instruction(InstructionDTO dto) {
+        SwTask task = swTaskService.selectById(dto.getTaskId());
+        int i = swUsableService.selectCount(new QueryWrapper<SwUsable>().eq("swid", task.getSwid())
+                .eq("uid", ShiroUtils.getSessionUser().getId())
+                .eq("status", SwConst.UsableScope.getValue("读写")));
+        if (i==0){
+            throw new KrtException(ReturnBean.error("已审批"));
+        }
+
+        SwProcess swProcess = new SwProcess();
+        swProcess.setStatus(dto.getStatus());
+        swProcess.setContent(dto.getContent());
+        update(swProcess, new UpdateWrapper<SwProcess>().eq("approver", ShiroUtils.getSessionUser().getId())
+        .eq("task_id", dto.getTaskId()));
+
+        SwUsable swUsable = new SwUsable();
+        swUsable.setUsable(SwConst.UsableScope.getValue("只读"));
+        swUsableService.update(swUsable, new UpdateWrapper<SwUsable>().eq("swid", task.getSwid())
+                .eq("uid", ShiroUtils.getSessionUser().getId()));
+
+        /**获取此次审批的排序号*/
+        List<SwProcess> processList = selectList(new UpdateWrapper<SwProcess>().eq("approver", ShiroUtils.getSessionUser().getId())
+                .eq("task_id", dto.getTaskId()));
+        if (CollectionUtils.isEmpty(processList) || processList.get(0) == null || processList.get(0).getSort() == null){
+            throw new KrtException(ReturnBean.error("未能审批成功，请联系管理员"));
+        }
+        Integer sort = processList.get(0).getSort();
+
+        /**获取此次审批的之后的审批
+         * todo 目前SwProcess为升序,适用于至上而下的审批。至下而上的审批需要重写排序方法，采用Comparator。
+         * */
+        List<SwProcess> sortList = selectList(new UpdateWrapper<SwProcess>().eq("task_id", dto.getTaskId()).gt("sort", sort));
+        if (CollectionUtils.isEmpty(sortList) || sortList.get(0) == null){
+            log.debug("任务ID："+dto.getTaskId()+"，此次审批未最终环节，此次任务已经结束");
+            return true;
+        }
+        Integer sort1 = sortList.get(0).getSort();
+
+        /**获取到此次审批之后一批次的审批人员更新为可审批状态（读写）*/
+        for(SwProcess swp : processList){
+            if (swp.getSort().intValue() == sort1){
+                SwUsable swu = new SwUsable();
+                swu.setUsable(SwConst.UsableScope.getValue("读写"));
+                swUsableService.update(swu, new UpdateWrapper<SwUsable>().eq("swid", swp.getSwid())
+                .eq("uid", swp.getApprover()));
+            }
+        }
+        return true;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean revoke(Integer taskId) {
+        /**如果本次撤销前已有下一环节审批了就不能撤销*/
+        SwTask task = swTaskService.selectById(taskId);
+        int i = swUsableService.selectCount(new QueryWrapper<SwUsable>().eq("swid", task.getSwid())
+                .eq("uid", ShiroUtils.getSessionUser().getId())
+                .eq("status", SwConst.UsableScope.getValue("读写")));
+        if (i==0){
+            throw new KrtException(ReturnBean.error("请勿重复审批"));
+        }
+
+        SwProcess swProcess = new SwProcess();
+        swProcess.setStatus(SwConst.ApprovalStatus.getValue("未批示"));
+        swProcess.setContent(" ");
+        update(swProcess, new UpdateWrapper<SwProcess>().eq("approver", ShiroUtils.getSessionUser().getId())
+                .eq("task_id", taskId));
+
+
+
+        return true;
+    }
+
+    public void t(Serializable taskId){
+        List<SwProcess> processList = super.selectList(new QueryWrapper<SwProcess>()
+                .eq("task_id", taskId).eq("status", SwConst.ApprovalStatus.getValue("未批示").intValue()));
+
+        if (CollectionUtils.isEmpty(processList) || processList.get(0)==null){
+            throw new KrtException(ReturnBean.error("任务：" + taskId + " 任务未有审批人，启动失败"));
+        }
+        List<SwUsable> usableList = new ArrayList<>(processList.size());
+        SwProcess swProcess = processList.get(0);
+
+        Iterator<SwProcess> it = processList.iterator();
+        while (it.hasNext()){
+            SwProcess next = it.next();
+            if (next.getSort() == swProcess.getSort().intValue()){
+                SwUsable swUsable = new SwUsable();
+                swUsable.setSwid(swProcess.getSwid());
+                swUsable.setSend(SwConst.IsOrNot.getValue("否"));
+                swUsable.setUid(swProcess.getApprover());
+                swUsable.setUsable(SwConst.UsableScope.getValue("读写"));
+                usableList.add(swUsable);
+            }
+        }
+
+
+        swUsableService.insertBatch(usableList);
+    }
+}

@@ -1,0 +1,171 @@
+package com.jk.kq.entity;
+
+import com.alibaba.fastjson.annotation.JSONField;
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
+import com.jk.common.base.BaseEntity;
+import io.swagger.annotations.ApiModelProperty;
+import lombok.*;
+
+import java.util.Date;
+
+import static com.baomidou.mybatisplus.annotation.FieldFill.*;
+
+/**
+ * 用户实体类
+ *
+ * @author 何任鹏
+ * @version 1.0
+ * @date 2020年05月26日
+ */
+@Data
+@EqualsAndHashCode(callSuper = false)
+@TableName("jk_open_user")
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
+public class OpenUser   {
+
+    /**
+     * 主键id
+     */
+    @TableId(type = IdType.ID_WORKER)
+    private Integer id;
+
+    /**
+     * 录入人
+     */
+    @ApiModelProperty(hidden = true)
+    @JSONField(serialize = false)
+    @TableField(fill = INSERT)
+    private Integer inserter;
+
+    /**
+     * 录入时间
+     */
+    @ApiModelProperty(hidden = true)
+    @TableField(fill = INSERT)
+    private Date insertTime;
+
+    /**
+     * 更新人
+     */
+    @ApiModelProperty(hidden = true)
+    @JSONField(serialize = false)
+    @TableField(fill = UPDATE)
+    private Integer updater;
+
+    /**
+     * 更新时间
+     */
+    @ApiModelProperty(hidden = true)
+    @TableField(fill = INSERT_UPDATE)
+    private Date updateTime;
+
+    /**
+     * 昵称
+     */
+    private String nickName;
+
+    /**
+     * 头像
+     */
+    private String avatarUrl;
+
+    /**
+     * 性别
+     */
+    private String gender;
+
+    /**
+     * 国家
+     */
+    private String country;
+
+    /**
+     * 省份
+     */
+    private String province;
+
+    /**
+     * 城市
+     */
+    private String city;
+
+    /**
+     * 语言
+     */
+    private String language;
+
+    /**
+     * 部门ID
+     */
+    private Integer organId;
+
+    /**
+     * D
+     */
+    private Integer roleId;
+
+    /**
+     * D
+     */
+    private String role;
+
+    /**
+     * 部门
+     */
+    private String organ;
+
+    /**
+     * 姓名
+     */
+    private String name;
+
+
+
+    /**
+     * auth
+     */
+    private String auth;
+
+    /**
+     * openid
+     */
+    private String openId;
+
+    /**
+     * unionid
+     */
+    private String unionId;
+
+    /**
+     * session_key
+     */
+    private String sessionKey;
+
+    /**
+     * third_session
+     */
+    private String thirdSession;
+
+    /**
+     * 状态
+     */
+    private Integer state;
+
+    /**
+     * 主指纹base64信息
+     */
+    private String fingerprint1;
+
+    /**
+     * 备用指纹base64信息
+     */
+    private String fingerprint2;
+
+
+
+}

@@ -1,0 +1,270 @@
+//package com.jk.api.controller;
+//
+//import com.alibaba.fastjson.JSONArray;
+//import com.alibaba.fastjson.JSONObject;
+//import com.jk.common.annotation.KrtIgnoreAuth;
+//import com.jk.common.bean.ReturnBean;
+//import com.jk.kq.entity.DeviceCmd;
+//import com.jk.kq.entity.OpenUser;
+//import com.jk.kq.entity.PunchRecord;
+////import com.jk.common.feignClient.KqClient;
+//import com.jk.kq.service.DeviceCmdService;
+//import com.jk.kq.service.DeviceService;
+//import com.jk.kq.service.IOpenUserService;
+//import com.jk.kq.service.IPunchRecordService;
+//import lombok.extern.slf4j.Slf4j;
+//import org.springframework.beans.factory.annotation.Autowired;
+//import org.springframework.stereotype.Controller;
+//import org.springframework.web.bind.annotation.GetMapping;
+//import org.springframework.web.bind.annotation.PostMapping;
+//import org.springframework.web.bind.annotation.ResponseBody;
+//
+//import javax.servlet.http.HttpServletRequest;
+//import java.io.*;
+//import java.text.ParseException;
+//import java.text.SimpleDateFormat;
+//import java.util.Date;
+//import java.util.List;
+//import java.util.Map;
+//import java.util.TimeZone;
+//
+///**
+// * {{文件描述}}
+// *
+// * @author 缪隽峰
+// * @version 1.0
+// * @date 2020年05月11日
+// */
+//@Slf4j
+//@Controller
+//public class DeviceController {
+//
+//    private static final String CHARSET = "UTF-8";
+//
+//    private final static Integer STATUS_OK = 1;
+//
+//    private final static String INFO_OK = "ok";
+//
+//    @Autowired
+//    private DeviceService deviceService;
+//
+//    @Autowired
+//    private DeviceCmdService deviceCmdService;
+//
+//    @Autowired
+//    private IOpenUserService openUserService;
+//
+//    @Autowired
+//    private IPunchRecordService punchRecordService;
+//
+////    @Autowired
+////    private KqClient client;
+//
+//    /**
+//     * cloud代码测试
+//     * @return
+//     */
+////    @GetMapping("api/test/cloud")
+////    @KrtIgnoreAuth
+////    @ResponseBody
+////    public ReturnBean cloud(){
+////        return client.updateUser();
+////    }
+//
+//    @GetMapping("api/data/unixtime")
+//    @KrtIgnoreAuth
+//    @ResponseBody
+//    public JSONObject time(String sn) {
+//        JSONObject retval = new JSONObject(true);
+//
+//        System.out.println(sn);
+//        retval.put("status", STATUS_OK);
+//        retval.put("info", INFO_OK);
+//
+////        Calendar cal = Calendar.getInstance();
+////        TimeZone zone = TimeZone.getTimeZone("GMT-8:00");
+////        cal = Calendar.getInstance(zone);
+//
+////        Calendar cal = java.util.Calendar.getInstance(java.util.Locale.CHINA);
+//
+////        Calendar beforeTime = Calendar.getInstance();
+////        beforeTime.add(Calendar.MINUTE, -2);// 2分钟之前的时间
+////        beforeTime.add(Calendar.SECOND, -60);
+////        Date now = beforeTime.getTime();
+//        Date now = new Date();
+//        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+//        format.setTimeZone(TimeZone.getTimeZone("UTC"));
+//        String datetime = format.format(now);
+//        Integer unixtime = 0;
+//        try {
+//            unixtime = Long.valueOf(format.parse(datetime).getTime() / 1000).intValue();
+//        } catch (ParseException e) {
+//            e.printStackTrace();
+//            log.info(e.getMessage());
+//        }
+//
+//        JSONObject data = new JSONObject(true);
+//        data.put("timezone", "UTC");
+//        data.put("unixtime", unixtime);
+//        data.put("datetime", datetime);
+//
+//        retval.put("data", data);
+//
+////        return retval.toJSONString();
+//        return retval;
+//    }
+//
+//
+//    /**
+//     * 用于给考勤机下发数据，我们只需要在执行业务逻辑的时候调用DeviceServiceImpl里面的方法，插入命令即可
+//     *
+//     * @param sn
+//     * @param requesttime
+//     * @return
+//     */
+//    @GetMapping("api/data/get")
+//    @KrtIgnoreAuth
+//    @ResponseBody
+//    public JSONObject get(String sn, Long requesttime) {
+//        JSONObject retval = new JSONObject();
+//        List<DeviceCmd> deviceCmdList = deviceCmdService.selectQueueCmd(sn);
+//        retval.put("status", 1);
+//        retval.put("info", "ok");
+//
+//        if (!deviceCmdList.isEmpty()) {
+//            JSONArray data = new JSONArray();
+//            for (DeviceCmd deviceCmd : deviceCmdList) {
+//                data.add(JSONObject.parseObject(deviceCmd.getCommand()));
+//            }
+//            retval.put("data", data);
+//        } else {
+//            retval.put("data", deviceService.updateConfig(sn));
+//        }
+//        System.out.println("服务器下发(GET): " + retval.toString());
+//        return retval;
+//    }
+//
+//    /**
+//     * 考勤机提交数据，需要在服务端进行处理
+//     *
+//     * @param request
+//     * @param sn
+//     * @return
+//     */
+//    @PostMapping("api/data/post")
+//    @KrtIgnoreAuth
+//    @ResponseBody
+//    public JSONObject post(HttpServletRequest request, String sn) {
+////        System.out.println("api/data/post post: " + sn);
+//
+//
+//        StringBuilder sb = new StringBuilder();
+//        InputStream inputStream = null;
+//        try {
+//            inputStream = request.getInputStream();
+//            BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, CHARSET));
+//            String line = null;
+//            while ((line = reader.readLine()) != null) {
+////                sb.append(line).append("\n");
+//                sb.append(line);
+//            }
+////            return sb.toString();
+//            System.out.println("考勤机上传(POST): " + sb.toString());
+//
+//            JSONArray dataArray = JSONArray.parseArray(sb.toString());
+//            JSONArray da = new JSONArray();
+//            for (int i = 0; i < dataArray.size(); i++) {
+//                JSONObject d = dataArray.getJSONObject(i);
+//                if (d.getString("data").equals("clockin")) {
+//                    String id = d.getString("id");
+//                    //如果上传的是打卡数据
+//                    PunchRecord punchRecord = new PunchRecord();
+//                    //将这条记录插入数据库中
+//                    //[{"id":"121579","data":"clockin","time":"2020-06-11 08:41:01","pic":"clockinPicture","verify":1,"ccid":"2975856"}]
+//                    Integer openUserId = Integer.parseInt(d.getString("ccid"));
+//                    OpenUser openUser = openUserService.selectById(openUserId);
+//                    if(openUser != null) {
+//                        punchRecord.setOpenUserId(openUserId);
+//                        punchRecord.setDeviceId(1);
+//                        punchRecord.setOrganId(openUser.getOrganId());
+//                        punchRecord.setOrgan(openUser.getOrgan());
+//                        punchRecord.setPunchTime(d.getDate("time"));
+//                        punchRecord.setPunchState(1);
+//                        punchRecordService.insert(punchRecord);
+//                    }
+//                    da.add(id);
+//                } else if (d.getString("data").equals("fingerprint")) {
+//                    String id = d.getString("id");
+//                    //如果上传的是指纹信息，将指纹信息上传到数据库中（base64）
+//                    //{"id":"2","data":"fingerprint","ccid":"123456","fingerprint":["base64","base64"]}
+//                    //获取用户信息
+//                    Integer openUserId = Integer.parseInt(d.getString("ccid"));
+//                    OpenUser openUser = openUserService.selectById(openUserId);
+//                    if(openUser != null) {
+//                        List list = (List) d.get("fingerprint");
+//                        openUser.setFingerprint1((String) list.get(0));
+//                        openUser.setFingerprint2((String) list.get(1));
+//                    }
+//                    openUserService.updateById(openUser);
+//                    da.add(id);
+//                } else if (d.getString("data").equals("return")) {
+//                    String id = d.getString("id");
+//                    //这个是考勤机回应的消息，一般是确认消息已被消费，我们要在这里进行消息状态修改，把状态修改为1
+//                    //[{"return":[{"id":"1591863250053","result":"0"}],"data":"return","id":"1602099"}]
+//                    List list = (List) d.get("return");
+//                    Map map = (Map) list.get(0);
+//                    String msgId = (String) map.get("id");
+//                    deviceCmdService.updateStatusOk(msgId);
+//                    da.add(id);
+//                }
+//            }
+//            /**
+//             * 回复命令
+//             */
+//            JSONObject re = new JSONObject();
+//            re.put("status", 1);
+//            re.put("info", "ok");
+//            re.put("data", da);
+//
+//            System.out.println("服务器下发(POST): " + re.toString());
+//
+//            return re;
+//        } catch (Exception e) {
+//            throw new RuntimeException(e);
+//        } finally {
+//            if (inputStream != null) {
+//                try {
+//                    inputStream.close();
+//                } catch (IOException e) {
+//                    e.printStackTrace();
+//                }
+//            }
+//        }
+//    }
+//
+//
+////    @GetMapping("api/test/user")
+////    @KrtIgnoreAuth
+////    @ResponseBody
+////    public ReturnBean testUser(String sn) {
+////        deviceService.updateUser(sn, "0", "123456", "32423423", "缪隽峰");
+////        return ReturnBean.ok();
+////    }
+//
+//    @GetMapping("api/test/dept")
+//    @KrtIgnoreAuth
+//    @ResponseBody
+//    public ReturnBean testDept(String sn) {
+//        deviceService.updateDept(sn, "10", "0", "财务部");
+//        return ReturnBean.ok();
+//    }
+//
+//    @GetMapping("api/test/info")
+//    @KrtIgnoreAuth
+//    @ResponseBody
+//    public ReturnBean testInfo(String sn) {
+//        deviceService.uploadInfo(sn);
+//        return ReturnBean.ok();
+//    }
+//
+//}
